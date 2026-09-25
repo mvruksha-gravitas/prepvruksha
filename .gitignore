@@ -1,0 +1,27 @@
+﻿# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+service-account*.json
+
+# Flutter / Dart
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Python
+__pycache__/
+.venv/
+*.pyc
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Editors / OS
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
