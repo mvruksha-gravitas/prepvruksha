@@ -1,6 +1,6 @@
 import pytest
 
-from prepvruksha_pipeline.settings import Settings
+from prepvruksha_pipeline.shared import Settings
 
 
 def test_settings_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
