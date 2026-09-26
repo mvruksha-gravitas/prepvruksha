@@ -73,7 +73,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final thisYear = DateTime.now().year;
+    final examYears = ref.watch(targetExamYearsProvider);
     final language = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
@@ -125,13 +125,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   labelText: l10n.profileExamYearLabel,
                 ),
                 items: [
-                  for (var y = thisYear; y <= thisYear + 3; y++)
+                  for (final y in examYears.value ?? const <int>[])
                     DropdownMenuItem(value: y, child: Text('$y')),
                 ],
-                onChanged: (v) => setState(() => _examYear = v),
+                // Disabled until the years load.
+                onChanged: examYears.hasValue
+                    ? (v) => setState(() => _examYear = v)
+                    : null,
                 validator: (v) =>
                     v == null ? l10n.profileExamYearRequired : null,
               ),
+              if (examYears.hasError && !examYears.isLoading)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.profileExamYearsLoadFailed,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      key: const Key('exam-years-retry'),
+                      onPressed: () => ref.invalidate(targetExamYearsProvider),
+                      child: Text(l10n.retry),
+                    ),
+                  ],
+                )
+              else if (examYears.value?.isEmpty ?? false)
+                Text(
+                  l10n.profileExamYearsUnavailable,
+                  key: const Key('exam-years-unavailable'),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String?>(
                 key: const Key('category-field'),

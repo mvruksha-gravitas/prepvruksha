@@ -58,6 +58,16 @@ class FakeProfileRepository implements ProfileRepository {
   @override
   Future<void> updatePreferredLanguage(String languageCode) async =>
       savedLanguages.add(languageCode);
+
+  /// What the database rule returns; set [targetExamYearsError] to make it fail.
+  List<int> targetExamYears = [2027, 2028, 2029];
+  Object? targetExamYearsError;
+
+  @override
+  Future<List<int>> fetchTargetExamYears({String examCode = 'NEET_UG'}) async {
+    if (targetExamYearsError case final error?) throw error;
+    return targetExamYears;
+  }
 }
 
 /// In-memory stand-in for the API's signup rules.

@@ -122,6 +122,14 @@ class AppLocalizationsKn extends AppLocalizations {
   String get profileExamYearRequired => 'ನಿಮ್ಮ ಪರೀಕ್ಷೆಯ ವರ್ಷವನ್ನು ಆಯ್ಕೆಮಾಡಿ';
 
   @override
+  String get profileExamYearsLoadFailed =>
+      'ಪರೀಕ್ಷೆಯ ವರ್ಷಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ. ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get profileExamYearsUnavailable =>
+      'ಮುಂದಿನ NEET ಪರೀಕ್ಷೆಯ ದಿನಾಂಕ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ, ಆದ್ದರಿಂದ ನೋಂದಣಿ ತಾತ್ಕಾಲಿಕವಾಗಿ ನಿಂತಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
   String get profileCategoryLabel => 'ವರ್ಗ (ಐಚ್ಛಿಕ)';
 
   @override

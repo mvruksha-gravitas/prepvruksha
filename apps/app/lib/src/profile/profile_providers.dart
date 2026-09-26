@@ -19,6 +19,15 @@ final ownProfileProvider = FutureProvider<Profile?>((ref) async {
   return ref.watch(profileRepositoryProvider).fetchOwn();
 });
 
+/// NEET target exam years the profile step offers, from the exam dates on
+/// record. The database applies the same rule when the profile is saved.
+///
+/// No automatic retry: the profile screen shows the error with a retry button.
+final targetExamYearsProvider = FutureProvider<List<int>>(
+  (ref) => ref.watch(profileRepositoryProvider).fetchTargetExamYears(),
+  retry: (retryCount, error) => null,
+);
+
 /// The language chosen in the app; null follows the device language.
 /// Saved to `profiles.preferred_language` when signed in, and restored from
 /// it once the profile is complete (a new profile's default is not a choice).

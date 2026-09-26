@@ -31,4 +31,13 @@ class SupabaseProfileRepository implements ProfileRepository {
         .update({'preferred_language': languageCode})
         .eq('id', userId);
   }
+
+  @override
+  Future<List<int>> fetchTargetExamYears({String examCode = 'NEET_UG'}) async {
+    final years = await _client.rpc<List<dynamic>>(
+      'target_exam_years',
+      params: {'p_exam_code': examCode},
+    );
+    return [for (final y in years) (y as num).toInt()];
+  }
 }

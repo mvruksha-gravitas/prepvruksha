@@ -60,6 +60,8 @@
   "profileDobOnce": "Check this carefully: your date of birth can't be changed later.",
   "profileExamYearLabel": "NEET exam year",
   "profileExamYearRequired": "Choose your exam year",
+  "profileExamYearsLoadFailed": "Couldn't load the exam years. Check your connection and try again.",
+  "profileExamYearsUnavailable": "The next NEET exam date isn't available yet, so signup is paused. Please try again later.",
   "profileCategoryLabel": "Category (optional)",
   "profileCategoryHelp": "Needed later only for the college predictor.",
   "categoryNone": "Prefer not to say",
