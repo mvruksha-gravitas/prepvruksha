@@ -41,12 +41,18 @@ insert into expected_privs values
   ('parental_consent_requests', 'authenticated', '{}'),
   ('audit_log',        'anon',          '{}'),
   ('audit_log',        'authenticated', '{SELECT}'),
-  ('audit_log',        'service_role',  '{SELECT,INSERT}');
+  ('audit_log',        'service_role',  '{SELECT,INSERT}'),
+  ('source_files',     'anon',          '{}'),
+  ('source_files',     'authenticated', '{SELECT}'),
+  ('import_jobs',      'anon',          '{}'),
+  ('import_jobs',      'authenticated', '{SELECT}'),
+  ('import_items',     'anon',          '{}'),
+  ('import_items',     'authenticated', '{SELECT}');
 insert into expected_privs
 select t, 'service_role', '{SELECT,INSERT,UPDATE,DELETE}'
 from unnest(array['exams', 'exam_cycles', 'subjects', 'chapters', 'topics', 'questions', 'question_topics',
                   'question_options', 'profiles', 'consents', 'staff_roles', 'policy_versions',
-                  'parental_consent_requests']) as t;
+                  'parental_consent_requests', 'source_files', 'import_jobs', 'import_items']) as t;
 
 select is(
   (select array_agg(c.relname::text order by c.relname)
@@ -130,7 +136,10 @@ from (values
   ('start_parental_consent', array['uuid', 'text', 'text', 'text']),
   ('verify_parental_consent', array['uuid', 'text']),
   ('withdraw_consent', array['uuid', 'text']),
-  ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text'])
+  ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text']),
+  ('create_source_file', array['uuid', 'text', 'text', 'bigint', 'text', 'text', 'text', 'text', 'smallint']),
+  ('complete_source_file_upload', array['uuid', 'uuid']),
+  ('set_source_file_rights', array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'smallint'])
 ) as f (name, args)
 cross join unnest(array['anon', 'authenticated']) as r;
 select function_privs_are('public', f.name, f.args, 'service_role', '{EXECUTE}',
@@ -142,7 +151,10 @@ from (values
   ('start_parental_consent', array['uuid', 'text', 'text', 'text']),
   ('verify_parental_consent', array['uuid', 'text']),
   ('withdraw_consent', array['uuid', 'text']),
-  ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text'])
+  ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text']),
+  ('create_source_file', array['uuid', 'text', 'text', 'bigint', 'text', 'text', 'text', 'text', 'smallint']),
+  ('complete_source_file_upload', array['uuid', 'uuid']),
+  ('set_source_file_rights', array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'smallint'])
 ) as f (name, args);
 select function_privs_are('private', 'signup_status', array['uuid', 'date'], r, '{}',
   format('%s cannot execute private.signup_status', r))
