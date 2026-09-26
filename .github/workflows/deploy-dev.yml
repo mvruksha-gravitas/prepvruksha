@@ -31,6 +31,8 @@ env:
   SERVICE: prepvruksha-api
   IMAGE: asia-south1-docker.pkg.dev/prepvruksha-dev/prepvruksha/api
   SUPABASE_PROJECT_REF: hzpuxfgfheizghpipmew
+  # Session pooler (IPv4) of prepvruksha-dev; not secret.
+  SUPABASE_POOLER_HOST: aws-0-ap-south-1.pooler.supabase.com
 
 jobs:
   changes:
@@ -77,13 +79,13 @@ jobs:
     name: Push migrations + seed (Supabase)
     needs: changes
     if: needs.changes.outputs.database == 'true'
-    # Secrets SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD live only in the
-    # "dev" environment (Settings > Environments), limited to main.
+    # The only credential is SUPABASE_DB_PASSWORD, a secret of the "dev"
+    # environment (Settings > Environments), limited to main. No Supabase
+    # access token: `supabase link` would need to read the project's API keys.
     environment: dev
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
@@ -92,21 +94,23 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.118.0
-      - name: Link prepvruksha-dev
+      - name: Database connection
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "Set SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD in the dev environment (see infra/README.md)"
+          if [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "Set SUPABASE_DB_PASSWORD in the dev environment (see infra/README.md)"
             exit 1
           fi
-          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          password=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          echo "::add-mask::$password"
+          echo "DB_URL=postgresql://postgres.$SUPABASE_PROJECT_REF:$password@$SUPABASE_POOLER_HOST:5432/postgres" >> "$GITHUB_ENV"
       - name: Pending changes
-        run: supabase db push --linked --include-seed --dry-run
+        run: supabase db push --db-url "$DB_URL" --include-seed --dry-run
       - name: Push migrations and seed
-        run: supabase db push --linked --include-seed --yes
+        run: supabase db push --db-url "$DB_URL" --include-seed --yes
       - name: Every migration is applied
         run: |
-          supabase db push --linked --dry-run 2>&1 | tee dry-run.log
-          grep -q "Remote database is up to date" dry-run.log
+          supabase db push --db-url "$DB_URL" --dry-run 2>&1 | tee dry-run.log
+          grep -q "database is up to date" dry-run.log
 
   api:
     name: Deploy API (Cloud Run)
