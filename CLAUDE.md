@@ -23,6 +23,7 @@ Vidhyavruksha ERP, connected to it via a small API.
 | `docs/ARCHITECTURE.md` | Stack, services, data flow, key technical decisions |
 | `docs/DATA_MODEL.md` | Core database tables and relationships |
 | `docs/ROADMAP.md` | Phases, milestones, and infrastructure setup order |
+| `docs/STATUS.md` | What's done, environment state, open to-dos, carry-over notes |
 
 ## Tech stack
 
@@ -81,6 +82,7 @@ docs/
 
 ## How to work
 
+- At the start of every conversation, read `docs/STATUS.md`. At the end of every slice, update it (done, open items, decisions) and log important decisions in `docs/ARCHITECTURE.md`.
 - Build in **vertical slices**: one feature working end to end (DB → API → UI → test) before starting the next.
 - For any non-trivial feature, propose a plan first and wait for approval.
 - When a requirement in `docs/` is unclear or conflicts with code, ask rather than guess.

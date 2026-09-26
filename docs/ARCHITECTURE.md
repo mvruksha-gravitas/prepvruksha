@@ -154,6 +154,12 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-26 | RLS helpers in a `private` schema | Not exposed through the Data API as RPC endpoints |
 | 2026-09-26 | Allowed values as `text` + `CHECK`, not Postgres enums | Easier to extend in later migrations |
 | 2026-09-26 | Dart pub workspaces instead of Melos | Built into Dart; one fewer tool |
-| 2026-09-26 | App config via `--dart-define-from-file` (`config/*.json`, git-ignored); Android `dev`/`prod` flavors (`com.mvruksha.prepvruksha[.dev]`) | No keys in the repo; dev and prod builds install side by side |
+| 2026-09-26 | App config via `--dart-define-from-file` (`config/*.json`, git-ignored); Android `dev`/`prod` flavors (`com.mvruksha.prepvruksha[.dev]`) | No keys in the repo; dev and prod builds install side by side. App ID is permanent once on the Play Store |
+| 2026-09-26 | Apps use Supabase's publishable key (`SUPABASE_PUBLISHABLE_KEY`), never the legacy anon JWT or the secret key | The anon key name is deprecated in `supabase_flutter`; the secret key belongs only in `services/*` |
+| 2026-09-26 | Python services are separate uv projects pinned to Python 3.12 | One lockfile and Docker image per service; matches the 3.12 target even where newer Python is installed |
+| 2026-09-26 | Android debug builds allow cleartext HTTP (debug manifest only) | Needed to reach local Supabase from the emulator (`http://10.0.2.2:54321`); release builds stay HTTPS-only |
+| 2026-09-26 | Wrong and expired OTP codes show one message | Supabase returns `otp_expired` for both |
+| 2026-09-26 | App and syllabus Kannada text is AI-drafted and marked unreviewed until the translator approves it | Follows the rule that nothing AI-drafted is final without human review |
+| 2026-09-27 | `profiles.category` holds central (MCC) categories only; `state_category` (KEA) and a `pwd` flag are added before the college predictor | MCC and KEA use different category lists |
 | 2026-09-27 | Explicit grants per table; default privileges grant API roles nothing (all environments) | `prepvruksha-dev` has "Automatically expose new tables" off, local grants everything: relying on defaults broke dev and granted `TRUNCATE` (bypasses RLS) to app roles |
 | 2026-09-26 | Local Supabase enables Twilio with placeholder values | Supabase Auth refuses phone sign-in without a provider, even for test numbers; replaced by the DLT-registered provider |
