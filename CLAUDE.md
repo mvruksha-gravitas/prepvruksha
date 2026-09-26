@@ -81,6 +81,14 @@ docs/
 - Secrets live in Supabase / GCP Secret Manager and local `.env` files that are git-ignored. Never commit keys.
 - Keep Kannada and English as first-class: all user-facing strings go through localisation (`intl` / ARB files).
 
+## Modularity
+
+- **Feature-first layout.** Each feature (auth, profile, consent, and later exam, practice…) has its own folder in the app, the API and the tests, holding its screens, logic, data access, config and tests.
+- **One public entry file per feature.** Features depend on each other only through that file; never import another feature's internal files. Shared code lives in `packages/core`, `packages/ui_kit`, or a shared module in the API.
+- **Config split by concern.** Environment values stay in one file per environment; feature-specific settings live in that feature's own config; no single large config file.
+- **CI split per area.** Each job runs only when its folders change.
+- **Import boundaries checked in CI:** `import-linter` for Python, and an equivalent for Dart.
+
 ## How to work
 
 - At the start of every conversation, read `docs/STATUS.md`. At the end of every slice, update it (done, open items, decisions) and log important decisions in `docs/ARCHITECTURE.md`.
@@ -107,6 +115,7 @@ Test phone numbers: +91 99999 00001–00005, code `123456` (no SMS sent).
 **Flutter** (pub workspace; `flutter pub get` at the root resolves everything)
 ```
 flutter analyze                     # whole workspace
+dart run tool/check_import_boundaries.dart   # feature import boundaries
 dart format apps packages
 cd packages/core && dart test
 cd apps/app && flutter test         # likewise apps/console, packages/ui_kit
@@ -122,7 +131,7 @@ App config needs `API_URL` (local API: `http://127.0.0.1:8000`). Android emulato
 ```
 cd services/api
 uv sync                             # copy .env.example to .env first (secret key, OTP_HMAC_KEY)
-uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run lint-imports && uv run pytest
 uv run uvicorn prepvruksha_api.main:app --reload
 ```
 

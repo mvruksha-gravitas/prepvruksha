@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
-import '../signup/signup_failure_text.dart';
-import '../widgets/language_button.dart';
+import '../auth/auth.dart';
+import '../consent/consent.dart';
+
+import '../profile/profile.dart';
 
 /// Placeholder home screen until the student dashboard slice. Reached only
 /// when signup is complete.

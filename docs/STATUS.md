@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: end of the signup and parental-consent slice (branch `feat/profile-consent`, not merged yet)
+Last updated: modular-structure slice (branch `feat/modular-structure`)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -11,7 +11,7 @@ Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
 
 - [ ] **Real SMS sending (DLT-registered)** for both sign-in OTP (Supabase Auth) and parent consent codes (`services/api`, replacing `LogOtpSender`). The API refuses to start with `APP_ENV=prod` while the log sender or test parent numbers are configured.
 - [ ] **Final legal text from a lawyer:** terms of use, privacy policy and parental consent text. Publish it as a new `policy_versions` row (terms + parental) and replace the placeholder in `PolicyScreen` / the `policyPlaceholderBody` strings. A new terms version makes every student accept again.
-- [x] Signup and parental-consent flow (this slice).
+- [x] Signup and parental-consent flow (PR #3).
 
 ## 1. Done
 
@@ -29,7 +29,7 @@ Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
 - **CI:** `.github/workflows/ci.yml` — Flutter (l10n up to date, format, analyze, tests), Python matrix, database (migrations, lint, pgTAP).
 - Login through the running app verified on web (Chrome, local Supabase).
 
-### Signup and parental consent (DPDP) — branch `feat/profile-consent`
+### Signup and parental consent (DPDP) — PR #3, merged to `main`
 
 Order of steps for a signed-in user: **profile → terms → parental consent (under 18 only) → home.** The router sends the user to the first unmet step; the step is decided by the database at the time of asking.
 
@@ -46,13 +46,23 @@ Order of steps for a signed-in user: **profile → terms → parental consent (u
 - **App:** gate screen (loading / error + retry), profile form (DD/MM/YYYY date of birth with a "can't be changed later" note, exam year, optional category, language), terms screen + placeholder policy page, parent consent screen (form → waiting view with code entry, resend after the wait, change number, sign out), consent withdrawal on home (with confirmation). Language choice saved to `profiles.preferred_language` and restored once the profile is complete. `AppConfig` now requires `API_URL`.
 - **Tests:** 244 pgTAP (new `04_signup.test.sql`), API 39 pytest, core 26, app 30, console 1, ui_kit 1. Verified end to end against local Supabase + local API over HTTP (sign in → profile → terms → parent code → verify → withdraw; app clients get 403 on the RPC functions and on writing `date_of_birth`). The Flutter web build compiles; **the new screens have not been clicked through in Chrome yet** (see to-do).
 
+### Modular structure — branch `feat/modular-structure`
+
+Feature-first layout per "Modularity" in `CLAUDE.md`. No behaviour change.
+
+- **API** (`services/api/src/prepvruksha_api/`): `auth/` (JWT verification), `profile/` (`GET /me/signup`, `PUT /me/profile`), `consent/` (terms, parent codes, withdrawal), `shared/` (settings, Supabase RPC, phone numbers, signup state + rule-error mapping). Each feature's `__init__.py` is its public entry. Tests mirror it (`tests/<feature>/`, fakes in `tests/conftest.py`).
+- **App** (`apps/app/lib/src/`): `auth/`, `profile/` (profile step, language), `consent/` (signup state, gate, terms, policy, parent consent), `home/`, each with an entry file `<feature>.dart`; `app/` (app, router, config error) and `shared/` (routes, `appConfigProvider`). Tests: `test/<feature>/` and cross-feature `test/flows/`.
+- **Boundary checks:** `import-linter` contracts in `services/api/pyproject.toml` (`uv run lint-imports`); `tool/check_import_boundaries.dart` for Dart (`dart run tool/check_import_boundaries.dart`). Both run in CI.
+- **CI:** jobs run only when their folders change (`dorny/paths-filter`); **"CI result"** always runs and is the single required check.
+- Tests: API 39, app 30 (unchanged counts).
+
 ## 2. Environments
 
 | | Local | `prepvruksha-dev` |
 |---|---|---|
 | Supabase | `supabase start` (Docker Desktop). Test numbers in `config.toml` | Ref `hzpuxfgfheizghpipmew`, Mumbai. Linked from this repo |
-| Migrations | All 10 (via `supabase db reset`) | 6 applied, up to `20260927000100`. **This slice's 4 migrations + seed `02_policy_versions.sql` not pushed yet** |
-| Seed | Applied on reset | Syllabus applied (100 chapters); policy versions not yet |
+| Migrations | All 10 (via `supabase db reset`) | All 10 applied, up to `20260928000400` (checked 26 Sep with `supabase migration list --linked`) |
+| Seed | Applied on reset | Syllabus (100 chapters) and the two `2026-10-draft` policy versions |
 | Users / staff | Test numbers only | 0 users, 0 staff roles, 0 questions (as of 27 Sep) |
 | Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | **Test numbers not configured yet** (see to-do) |
 | `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Not deployed |
@@ -66,7 +76,9 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 ## 3. Open to-do
 
 - [ ] **Click through the signup flow in Chrome** against local Supabase + local API: add `"API_URL": "http://127.0.0.1:8000"` to `config/local.json` (now required, or the app shows the config error screen), start the API, sign in with +91 99999 00001, complete the profile as a minor, parent number +91 99999 00006, code `123456`.
-- [ ] **Push this slice to `prepvruksha-dev`** after merge: `supabase db push --include-seed`, then check `policy_versions` has the two draft rows.
+- [ ] **Branch protection:** make "CI result" the only required status check on `main` (after this slice merges).
+- [ ] **Feature config split (API):** the parent-code settings (`OTP_HMAC_KEY`, `PARENT_OTP_SENDER`, `PARENT_OTP_TEST_CODES`) and their prod safety check still live in `shared/settings.py`; move them to `consent/config.py` with the prod check kept intact (see the modular-structure PR).
+- [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
 - [ ] **Deploy `services/api` to Cloud Run (dev)** with secrets in Secret Manager (`SUPABASE_SECRET_KEY`, `OTP_HMAC_KEY`); set `API_URL` in `config/dev.json`. Until then the dev app can't get past signup (use `http://10.0.2.2:8000` for a local API from the emulator).
 - [ ] **Test phone numbers on `prepvruksha-dev`:** add +91 99999 00001–00005, code `123456`, under Auth > Providers > Phone, with a placeholder SMS provider (see `supabase/README.md`). Then log in from the app with `config/dev.json`.
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
@@ -100,5 +112,5 @@ Upload files in the console → extracted, parsed, tagged, de-duplicated → rev
 - **Deferred schema:** `questions.embedding` + HNSW index (once the embedding model is chosen), FK `questions.source_file_id → source_files`, `trap_type`, topics seed, `neet_weightage` values.
 - **iOS flavors** (dev/prod bundle IDs) are not set up; needs a Mac. iOS is Phase 3.
 - **Git author** is fixed (`mVruksha`). The first commit on `main` (`bd933fc`) keeps the old placeholder author; that is fine and should not be rewritten.
-- **GitHub CLI (`gh`) is not installed** on the dev machine; PRs are opened in the browser unless it is installed.
+- **GitHub CLI (`gh`)** is installed and logged in; PRs are opened with `gh pr create`.
 - Local Supabase keys printed by `supabase status` are well-known defaults; still keep them out of commits (`config/local.json` and `services/api/.env` are ignored).

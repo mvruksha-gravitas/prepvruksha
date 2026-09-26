@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ui_kit/ui_kit.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
+import 'auth_providers.dart';
 import 'auth_failure_text.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {

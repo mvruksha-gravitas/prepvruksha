@@ -13,8 +13,58 @@ permissions:
   contents: read
 
 jobs:
+  # Decides which areas changed. Each area's job runs only when its folders (or
+  # this workflow) change. "CI result" is the single required check.
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      flutter: ${{ steps.filter.outputs.flutter }}
+      database: ${{ steps.filter.outputs.database }}
+      python: ${{ steps.python.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            workflow: &workflow
+              - .github/workflows/ci.yml
+            flutter:
+              - *workflow
+              - apps/**
+              - packages/**
+              - tool/**
+              - pubspec.yaml
+              - pubspec.lock
+              - analysis_options.yaml
+            api:
+              - *workflow
+              - services/api/**
+            pipeline:
+              - *workflow
+              - services/pipeline/**
+            seo:
+              - *workflow
+              - services/seo/**
+            database:
+              - *workflow
+              - supabase/**
+      - name: Python services to check
+        id: python
+        env:
+          CHANGED: ${{ steps.filter.outputs.changes }}
+        run: |
+          echo "services=$(jq -c '[.[] | select(. == "api" or . == "pipeline" or . == "seo")]' <<< "$CHANGED")" >> "$GITHUB_OUTPUT"
+
   flutter:
     name: Flutter (analyze + test)
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,9 +82,11 @@ jobs:
           flutter gen-l10n
           git diff --exit-code -- lib/l10n/generated
       - name: Format
-        run: dart format --output=none --set-exit-if-changed apps packages
+        run: dart format --output=none --set-exit-if-changed apps packages tool
       - name: Analyze
         run: flutter analyze
+      - name: Import boundaries
+        run: dart run tool/check_import_boundaries.dart
       - name: Test packages/core
         working-directory: packages/core
         run: dart test
@@ -50,12 +102,14 @@ jobs:
 
   python:
     name: Python (${{ matrix.service }})
+    needs: changes
+    if: needs.changes.outputs.python != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        service: [api, pipeline, seo]
+        service: ${{ fromJSON(needs.changes.outputs.python) }}
     defaults:
       run:
         working-directory: services/${{ matrix.service }}
@@ -69,10 +123,19 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      - name: Import boundaries
+        run: |
+          if grep -q '^\[tool.importlinter\]' pyproject.toml; then
+            uv run lint-imports
+          else
+            echo "No import-linter contracts in this service yet."
+          fi
       - run: uv run pytest -q
 
   database:
     name: Database (migrations + RLS tests)
+    needs: changes
+    if: needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -86,3 +149,22 @@ jobs:
         run: supabase db lint --fail-on error
       - name: pgTAP tests
         run: supabase test db
+
+  # The only check branch protection requires. Passes when every job that ran
+  # passed; skipped jobs (unchanged areas) count as passing.
+  result:
+    name: CI result
+    needs: [changes, flutter, python, database]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check job results
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          if jq -e 'any(.[]; . == "failure" or . == "cancelled")' <<< "$RESULTS" > /dev/null; then
+            echo "A CI job failed or was cancelled."
+            exit 1
+          fi
