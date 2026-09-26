@@ -22,8 +22,8 @@ insert into expected_privs values
   ('topics',           'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
   ('questions',        'anon',          '{SELECT}'),
   ('questions',        'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
-  ('question_topics',  'anon',          '{SELECT}'),
-  ('question_topics',  'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
+  ('sub_topics',       'anon',          '{SELECT}'),
+  ('sub_topics',       'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
   ('question_options', 'anon',          '{}'),
   ('question_options', 'authenticated', '{INSERT,UPDATE,DELETE}'),
   ('profiles',         'anon',          '{}'),
@@ -50,7 +50,7 @@ insert into expected_privs values
   ('import_items',     'authenticated', '{SELECT}');
 insert into expected_privs
 select t, 'service_role', '{SELECT,INSERT,UPDATE,DELETE}'
-from unnest(array['exams', 'exam_cycles', 'subjects', 'chapters', 'topics', 'questions', 'question_topics',
+from unnest(array['exams', 'exam_cycles', 'subjects', 'chapters', 'topics', 'sub_topics', 'questions',
                   'question_options', 'profiles', 'consents', 'staff_roles', 'policy_versions',
                   'parental_consent_requests', 'source_files', 'import_jobs', 'import_items']) as t;
 

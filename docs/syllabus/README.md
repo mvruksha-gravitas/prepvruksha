@@ -36,5 +36,33 @@ Rules the tree has to follow:
 - Once questions are tagged, names can be corrected but a sub-topic is not deleted or moved
   without re-tagging its questions, so it is worth getting the structure right now.
 
-After review the tree is loaded by a migration (`sub_topics`, `DATA_MODEL.md` section 10),
-with `expert_reviewed = true` for approved chapters.
+## Format rules (read by the loader)
+
+- `# Botany` / `# Zoology` / `# Physics` / `# Chemistry` start a subject.
+- `## [ ] Chapter name (`chapter-slug`, NCERT ref)`: the slug must match the seed
+  (`supabase/seed/01_neet_syllabus.sql`). `[x]` = the expert approved the chapter; its
+  sub-topics load with `expert_reviewed = true` (questions on them can be published).
+- `- **Topic**` and `  - Sub-topic` (two spaces). No deeper levels.
+- Add ` (removed)` at the end of a topic or sub-topic that left the syllabus; everything
+  in a removed chapter (`is_removed` in the seed) is removed too. Removed parts stay so
+  older PYQs can be tagged.
+- ` — Check: …` notes are for the reviewer and are not loaded.
+- To rename a topic or sub-topic after it has been loaded, keep its slug by ending the line with
+  `{old-slug}`; otherwise the new name becomes a new row and the old one is kept (the seed file
+  prints a notice listing rows the markdown no longer has).
+- A topic with no sub-topics gets one sub-topic with the topic's own name.
+
+## Loading
+
+The loader writes a **new seed file** (not a migration: on a fresh database, migrations run
+before the seed that creates the chapters):
+
+```powershell
+cd services/pipeline
+uv run prepvruksha-pipeline syllabus-sql ../../docs/syllabus/biology.md --out ../../supabase/seed/04_syllabus_biology.sql
+```
+
+Seed files run once per project and are never re-run when edited, so a loaded file is never
+edited: the teacher's corrections and approvals (`[x]`) go in a new, higher-numbered seed
+file generated from the updated markdown. It updates existing rows (names, removed flags,
+approvals, order), adds new ones, and never deletes any. Slugs are only frozen once a question on them is published.

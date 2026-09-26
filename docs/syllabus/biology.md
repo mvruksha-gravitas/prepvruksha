@@ -341,6 +341,30 @@ Botany and Zoology follow the seed's split of the NCERT Biology chapters.
   - In situ conservation (hotspots, protected areas, sacred groves)
   - Ex situ conservation
 
+### Removed from the syllabus
+
+Kept so older PYQs can be tagged; everything under a removed chapter loads with `is_removed = true`.
+
+## [ ] Transport in Plants (`transport-in-plants`, XI Ch 11, pre-2023, removed)
+
+- **Whole chapter** — Check: placeholder until the chapter is broken down from the pre-2023 NCERT book
+
+## [ ] Mineral Nutrition (`mineral-nutrition`, XI Ch 12, pre-2023, removed)
+
+- **Whole chapter** — Check: placeholder until the chapter is broken down from the pre-2023 NCERT book
+
+## [ ] Reproduction in Organisms (`reproduction-in-organisms`, XII Ch 1, pre-2023, removed)
+
+- **Whole chapter** — Check: placeholder until the chapter is broken down from the pre-2023 NCERT book
+
+## [ ] Strategies for Enhancement in Food Production (`strategies-for-enhancement-in-food-production`, XII Ch 9, pre-2023, removed)
+
+- **Whole chapter** — Check: placeholder until the chapter is broken down from the pre-2023 NCERT book
+
+## [ ] Environmental Issues (`environmental-issues`, XII Ch 16, pre-2023, removed)
+
+- **Whole chapter** — Check: placeholder until the chapter is broken down from the pre-2023 NCERT book
+
 # Zoology
 
 ## [ ] Animal Kingdom (`animal-kingdom`, XI Ch 4)
@@ -625,3 +649,11 @@ Botany and Zoology follow the seed's split of the NCERT Biology chapters.
   - Uses of transgenic animals
 - **Ethical issues**
   - GEAC, biopiracy and patents
+
+### Removed from the syllabus
+
+Kept so older PYQs can be tagged; everything under a removed chapter loads with `is_removed = true`.
+
+## [ ] Digestion and Absorption (`digestion-and-absorption`, XI Ch 16, pre-2023, removed)
+
+- **Whole chapter** — Check: placeholder until the chapter is broken down from the pre-2023 NCERT book

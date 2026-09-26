@@ -22,11 +22,22 @@ insert into public.staff_roles (user_id, role) values
 insert into public.consents (user_id, type, policy_version, scope, method)
 values ('11111111-1111-1111-1111-111111111111', 'terms', '2026-09', 'Test scope', 'in_app');
 
+insert into public.topics (chapter_id, slug, name_en)
+select c.id, 'newtons-third-law', 'Newton''s third law'
+from public.chapters c join public.subjects s on s.id = c.subject_id
+where s.code = 'PHY' and c.slug = 'laws-of-motion';
+
+insert into public.sub_topics (topic_id, chapter_id, slug, name_en, expert_reviewed)
+select t.id, t.chapter_id, 'action-reaction-pairs', 'Action-reaction pairs', true
+from public.topics t where t.slug = 'newtons-third-law';
+
 -- One public, one draft, one published-but-reserved question.
 insert into public.questions
-  (id, exam_id, subject_id, chapter_id, format, stem, source_type, status, slug, published_at, exam_reserved)
+  (id, exam_id, subject_id, chapter_id, format, stem, source_type, status, slug, published_at, exam_reserved,
+   sub_topic_id, difficulty, difficulty_source)
 select v.id::uuid, e.id, s.id, c.id, 'single_mcq', v.stem, 'original', v.status, v.slug,
-       case when v.status = 'published' then now() end, v.reserved
+       case when v.status = 'published' then now() end, v.reserved,
+       st.id, 'moderate', 'reviewer'
 from (values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Public question', 'published', 'public-question', false),
   ('aaaaaaaa-0000-0000-0000-000000000002', 'Draft question', 'draft', null, false),
@@ -35,6 +46,7 @@ from (values
 cross join public.exams e
 join public.subjects s on s.exam_id = e.id and s.code = 'PHY'
 join public.chapters c on c.subject_id = s.id and c.slug = 'laws-of-motion'
+join public.sub_topics st on st.chapter_id = c.id and st.slug = 'action-reaction-pairs'
 where e.code = 'NEET_UG';
 
 insert into public.question_options (question_id, label, content, is_correct)
@@ -43,15 +55,6 @@ from (values ('aaaaaaaa-0000-0000-0000-000000000001'), ('aaaaaaaa-0000-0000-0000
              ('aaaaaaaa-0000-0000-0000-000000000003')) as q (id)
 cross join (values ('A'), ('B'), ('C'), ('D')) as l (label);
 
-insert into public.topics (chapter_id, slug, name_en)
-select c.id, 'newtons-third-law', 'Newton''s third law'
-from public.chapters c join public.subjects s on s.id = c.subject_id
-where s.code = 'PHY' and c.slug = 'laws-of-motion';
-
-insert into public.question_topics (question_id, topic_id)
-select q.id::uuid, t.id
-from (values ('aaaaaaaa-0000-0000-0000-000000000001'), ('aaaaaaaa-0000-0000-0000-000000000003')) as q (id)
-cross join public.topics t where t.slug = 'newtons-third-law';
 
 -- ---------------------------------------------------------------------------
 -- Anonymous visitor
@@ -76,9 +79,12 @@ select is(
    where question_id in ('aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000003'))::int, 0,
   'anon: cannot read options of draft or reserved questions'
 );
-select results_eq('select question_id from public.question_topics',
-  $$ values ('aaaaaaaa-0000-0000-0000-000000000001'::uuid) $$,
-  'anon: reads topic tags of public questions only');
+select is((select count(*)::int from public.sub_topics where slug = 'action-reaction-pairs'), 1,
+  'anon: reads the sub-topic tree');
+select throws_ok(
+  $$ insert into public.sub_topics (topic_id, chapter_id, slug, name_en)
+     select topic_id, chapter_id, 'x', 'X' from public.sub_topics limit 1 $$,
+  '42501', null, 'anon: cannot add sub-topics');
 select throws_ok('select is_correct from public.question_options', '42501', null,
   'anon: cannot read is_correct');
 select throws_ok('select * from public.question_options', '42501', null,

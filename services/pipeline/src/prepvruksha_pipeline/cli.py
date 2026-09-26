@@ -8,6 +8,13 @@
 and stops starting new pages once --max-usd is spent. Results are saved as it
 goes; running it again on the same folder resumes and retries failed pages.
 `report` makes no API calls. Nothing here touches a database.
+
+    uv run prepvruksha-pipeline syllabus-sql ../../docs/syllabus/biology.md
+        --out ../../supabase/seed/04_syllabus_biology.sql
+
+`syllabus-sql` turns the sub-topic tree in docs/syllabus/*.md into a new
+seed file that loads it (no database connection; review the file, then
+`supabase db reset` to try it).
 """
 
 import argparse
@@ -42,6 +49,7 @@ from prepvruksha_pipeline.parse import (
     load_results,
 )
 from prepvruksha_pipeline.shared import Page, Settings, figure_asset_name
+from prepvruksha_pipeline.syllabus import SyllabusFormatError, parse, seed_sql
 
 RESULTS = "results.jsonl"
 RUN_INFO = "run.json"
@@ -171,6 +179,26 @@ def cmd_sheet_template(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_syllabus_sql(args: argparse.Namespace) -> int:
+    chapters = []
+    for name in args.files:
+        path = Path(name)
+        try:
+            chapters += parse(path.read_text(encoding="utf-8"))
+        except SyllabusFormatError as error:
+            print(f"{path}: {error}", file=sys.stderr)
+            return 2
+    out = Path(args.out)
+    if out.exists():
+        print(f"{out} already exists; not overwriting.", file=sys.stderr)
+        return 2
+    source = ", ".join(f"docs/syllabus/{Path(n).name}" for n in args.files)
+    out.write_text(seed_sql(chapters, source), encoding="utf-8", newline="\n")
+    subs = sum(len(t.sub_topics) for ch in chapters for t in ch.topics)
+    print(f"Wrote {out}: {len(chapters)} chapters, {subs} sub-topics")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="prepvruksha-pipeline",
@@ -211,6 +239,13 @@ def main(argv: list[str] | None = None) -> int:
     template = commands.add_parser("sheet-template", help="write an empty answer sheet")
     template.add_argument("path")
     template.set_defaults(func=cmd_sheet_template)
+
+    syllabus = commands.add_parser(
+        "syllabus-sql", help="write a seed file that loads docs/syllabus/*.md"
+    )
+    syllabus.add_argument("files", nargs="+", help="docs/syllabus/<subject>.md files")
+    syllabus.add_argument("--out", required=True, help="new seed file to write")
+    syllabus.set_defaults(func=cmd_syllabus_sql)
 
     args = parser.parse_args(argv)
     code: int = args.func(args)
