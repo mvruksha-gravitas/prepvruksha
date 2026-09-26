@@ -201,6 +201,15 @@ select lives_ok(
            'reference_only', 'Owner asked us to stop', 'Takedown request') $$,
          (select id from public.source_files where sha256 = repeat('a', 64))),
   'moving to reference_only is still allowed');
+select is(
+  (select status from public.questions where source_file_id =
+     (select id from public.source_files where sha256 = repeat('a', 64))),
+  'retired', 'takedown: the file''s published question is retired');
+select results_eq(
+  $$ select a.details ->> 'cause', a.details ->> 'reason' from public.audit_log a
+     join public.questions q on q.id = a.target_id where a.action = 'question.retired' $$,
+  $$ values ('source_file_reference_only', 'Takedown request') $$,
+  'takedown: each retired question is audited');
 
 -- ---------------------------------------------------------------------------
 -- Visibility: reviewers never see reference_only files or their items

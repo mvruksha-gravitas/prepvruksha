@@ -180,8 +180,8 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
    - **Database: done locally (not pushed)**, migration `20260930000100_source_files.sql`:
      - `source_files`, `import_jobs`, `import_items`; FK `questions.source_file_id`; private bucket `source-files` (PDF/Word, 100 MB, no client storage policies).
      - RLS: staff read only; `private.can_see_source_file` hides `reference_only` files (and, through them, their items) from reviewers; import jobs visible to content admins only.
-     - Service-role functions (content admins and super admins): `create_source_file` (validates type, size, hash, rights; reuses an unfinished upload of the same content; `duplicate_file` otherwise; audited), `complete_source_file_upload` (object must exist in the bucket with the recorded size; marks `queued` and creates the import job in one transaction), `set_source_file_rights` (reason required; audited old/new; only `reference_only` once questions are published).
-     - Tests: pgTAP 328 (new `06_source_files.test.sql`, privileges matrix updated); lint clean; functions checked as `service_role`.
+     - Service-role functions (content admins and super admins): `create_source_file` (validates type, size, hash, rights; reuses an unfinished upload of the same content; `duplicate_file` otherwise; audited), `complete_source_file_upload` (object must exist in the bucket with the recorded size; marks `queued` and creates the import job in one transaction), `set_source_file_rights` (reason required; audited old/new; only `reference_only` once questions are published, which retires them, audited).
+     - Tests: pgTAP 330 (new `06_source_files.test.sql`, privileges matrix updated); lint clean; functions checked as `service_role`.
    - **Rights status (approved 26 Sep):**
      - `rights_status` required (`owned_licensed`, `official_pyq`, `reference_only`), no default, recorded in `audit_log` at upload.
      - `official_pyq` files must record the **exam and year** (e.g. NEET_UG 2023: `pyq_exam_id`, `pyq_year`), used later to label their questions (`source_type = 'pyq'`, `pyq_year`).
@@ -237,7 +237,7 @@ Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made 
 - **`exam_reserved` questions** are never public; the SEO build must read only `public.seo_questions` (service role).
 - **Categories:** keep `profiles.category` for central (MCC) categories (`general`, `ews`, `obc_ncl`, `sc`, `st`); optional at signup, required only when using the college predictor. Before the predictor, add `state_category` (KEA categories) and a `pwd` flag.
 - **Audit log:** `audit_log` exists (date-of-birth corrections). Decide in the review-console slice whether publishing/answer-key edits use it or a separate `content_audit` table (as `DATA_MODEL.md` sketches); one table is simpler.
-- **Rights moved to `reference_only` after publishing** (takedown): `set_source_file_rights` allows it, but the file's published questions stay published until slice 3 adds the rule (retire them, or block). Decide in slice 3.
+- **Takedowns (decided 26 Sep):** moving a file to `reference_only` retires its published questions in the same transaction, one `question.retired` audit entry each (in `set_source_file_rights`). Slice 3 must also stop items or questions of `reference_only` files from being published again.
 - **SHA-256 is computed in the browser** and trusted for duplicate detection; the slice 2 worker re-checks it against the stored file.
 - **Deferred schema:** `questions.embedding` + HNSW index (slice 4), FK `questions.source_file_id → source_files` (slice 1), sub-topics and difficulty (before slice 2, `DATA_MODEL.md` section 10), `answer_checks` and `generation_jobs` (generator), `trap_type`, `neet_weightage` values.
 - **iOS flavors** (dev/prod bundle IDs) are not set up; needs a Mac. iOS is Phase 3.

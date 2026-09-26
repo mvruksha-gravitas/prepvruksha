@@ -317,8 +317,9 @@ end;
 $$;
 
 -- Changes a file's rights status later (audited with a reason). Once a file
--- has published questions it may only move to reference_only; slice 3 decides
--- what happens to those questions (the publish block lives there).
+-- has published questions it may only move to reference_only (a takedown):
+-- its published questions are then retired in the same transaction, each
+-- with an audit entry. Slice 3 adds the block on publishing them again.
 create or replace function public.set_source_file_rights(
   p_actor_id uuid,
   p_file_id uuid,
@@ -335,6 +336,7 @@ declare
   v_old public.source_files;
   v_row public.source_files;
   v_exam_id uuid;
+  v_retired uuid[];
 begin
   perform private.require_content_admin(p_actor_id);
   if coalesce(btrim(p_reason), '') = '' then
@@ -364,6 +366,20 @@ begin
     'new', jsonb_build_object('rights_status', v_row.rights_status, 'rights_note', v_row.rights_note,
                               'pyq_exam_id', v_row.pyq_exam_id, 'pyq_year', v_row.pyq_year),
     'reason', btrim(p_reason)));
+
+  if p_rights_status = 'reference_only' then
+    with retired as (
+      update public.questions set status = 'retired'
+      where source_file_id = p_file_id and status = 'published'
+      returning id
+    )
+    select coalesce(array_agg(id), '{}') into v_retired from retired;
+
+    insert into public.audit_log (actor_id, action, target_table, target_id, details)
+    select p_actor_id, 'question.retired', 'questions', q, jsonb_build_object(
+      'cause', 'source_file_reference_only', 'source_file_id', p_file_id, 'reason', btrim(p_reason))
+    from unnest(v_retired) as q;
+  end if;
   return v_row;
 end;
 $$;
