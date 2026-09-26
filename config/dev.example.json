@@ -2,5 +2,5 @@
   "APP_ENV": "dev",
   "SUPABASE_URL": "https://hzpuxfgfheizghpipmew.supabase.co",
   "SUPABASE_PUBLISHABLE_KEY": "<publishable key from the Supabase dashboard: Project Settings > API Keys>",
-  "API_URL": "<services/api URL: Cloud Run once deployed; http://10.0.2.2:8000 for a local API from the Android emulator>"
+  "API_URL": "https://prepvruksha-api-765197352192.asia-south1.run.app"
 }
