@@ -85,31 +85,35 @@ codes only.
 
 ### GitHub "dev" environment (database push)
 
-The database step uses two secrets stored only in the GitHub environment
-`dev`, never in the repository or its variables:
+The database step connects with one secret, stored only in the GitHub
+environment `dev` (never in the repository or its variables):
+`SUPABASE_DB_PASSWORD`, the database password of `prepvruksha-dev`. The job
+builds the connection string from it at run time (session pooler
+`aws-0-ap-south-1.pooler.supabase.com:5432`, user
+`postgres.hzpuxfgfheizghpipmew`) and runs `supabase db push --db-url`.
 
-| Secret | What |
-|---|---|
-| `SUPABASE_ACCESS_TOKEN` | Supabase personal access token (lets the CLI link the project) |
-| `SUPABASE_DB_PASSWORD` | Database password of `prepvruksha-dev` |
+No Supabase access token is used: `supabase link` would need one that can
+read the project's API keys, including the secret keys.
 
 Create the environment once (Settings > Environments > New environment >
 `dev`; under Deployment branches choose "Selected branches" and add `main`),
-then set the secrets from Git Bash. `gh` prompts for each value without
+then set the secret from Git Bash. `gh` prompts for the value without
 showing it:
 
 ```bash
-gh secret set SUPABASE_ACCESS_TOKEN --env dev --repo mvruksha-gravitas/prepvruksha
 gh secret set SUPABASE_DB_PASSWORD --env dev --repo mvruksha-gravitas/prepvruksha
 gh secret list --env dev --repo mvruksha-gravitas/prepvruksha   # names only
 ```
 
-- Access token: supabase.com/dashboard/account/tokens > Generate new token
-  (name it `github-deploy-dev`). It acts as your Supabase account, so revoke
-  and replace it there if it may have leaked.
-- Database password: the one set when the project was created. If unknown,
-  reset it under Project Settings > Database (then update the secret, and
-  re-run `supabase link` locally).
+Database password: the one set when the project was created. If unknown,
+reset it under Project Settings > Database (then update the secret). To check
+a password without changing anything:
+
+```bash
+read -rsp "Dev DB password: " PGPASSWORD; echo; export PGPASSWORD
+uv run --no-project --with "psycopg[binary]" python -c "import psycopg; c = psycopg.connect(host='aws-0-ap-south-1.pooler.supabase.com', port=5432, dbname='postgres', user='postgres.hzpuxfgfheizghpipmew', sslmode='require', connect_timeout=10); print('OK: connected as', c.execute('select current_user').fetchone()[0])"
+unset PGPASSWORD
+```
 
 ### GitHub repository variables
 
