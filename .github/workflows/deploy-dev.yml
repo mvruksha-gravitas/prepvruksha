@@ -3,7 +3,9 @@ name: Deploy dev
 # Deploys to prepvruksha-dev after CI passes on main, per area and in this
 # order: database (supabase/** changed), then the API (services/api changed),
 # then the web app (the app or its packages changed). A failed step stops the
-# ones after it. Run it by hand (Actions > Deploy dev > Run workflow) too.
+# ones after it. The staff console (apps/console) deploys alongside the web
+# app, to its own Hosting site. Run it by hand (Actions > Deploy dev > Run
+# workflow) too.
 on:
   workflow_run:
     workflows: [CI]
@@ -14,8 +16,8 @@ on:
       target:
         description: What to deploy
         type: choice
-        # both = API + web app; all = database, then API, then web app.
-        options: [both, all, database, api, web]
+        # both = API + web app + console; all = database, then API, then both apps.
+        options: [both, all, database, api, web, console]
         default: both
 
 concurrency:
@@ -49,6 +51,7 @@ jobs:
       database: ${{ steps.decide.outputs.database }}
       api: ${{ steps.decide.outputs.api }}
       web: ${{ steps.decide.outputs.web }}
+      console: ${{ steps.decide.outputs.console }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,6 +67,7 @@ jobs:
             case "$TARGET" in all|database) echo "database=true" >> "$GITHUB_OUTPUT" ;; esac
             case "$TARGET" in all|both|api) echo "api=true" >> "$GITHUB_OUTPUT" ;; esac
             case "$TARGET" in all|both|web) echo "web=true" >> "$GITHUB_OUTPUT" ;; esac
+            case "$TARGET" in all|both|console) echo "console=true" >> "$GITHUB_OUTPUT" ;; esac
             exit 0
           fi
           # Everything the merge brought into main (first parent = previous main).
@@ -73,6 +77,7 @@ jobs:
           grep -qE "^supabase/" <<< "$changed" && echo "database=true" >> "$GITHUB_OUTPUT"
           grep -qE "^services/api/|^infra/cloudrun/|$workflow" <<< "$changed" && echo "api=true" >> "$GITHUB_OUTPUT"
           grep -qE "^apps/app/|^packages/(core|ui_kit)/|^pubspec\.(yaml|lock)$|^firebase\.json$|$workflow" <<< "$changed" && echo "web=true" >> "$GITHUB_OUTPUT"
+          grep -qE "^apps/console/|^packages/(core|ui_kit)/|^pubspec\.(yaml|lock)$|^firebase\.json$|^\.firebaserc$|$workflow" <<< "$changed" && echo "console=true" >> "$GITHUB_OUTPUT"
           true
 
   database:
@@ -198,4 +203,50 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOYER_SA }}
       - name: Deploy to Firebase Hosting
-        run: npx --yes firebase-tools@14 deploy --only hosting --project="$PROJECT" --non-interactive
+        run: npx --yes firebase-tools@14 deploy --only hosting:app --project="$PROJECT" --non-interactive
+
+  console:
+    name: Deploy staff console (Firebase Hosting)
+    needs: [changes, database, api]
+    # Same order rule as the web app: after the steps that ran; never after a failed one.
+    if: >-
+      always() && needs.changes.outputs.console == 'true' &&
+      (needs.database.result == 'success' || needs.database.result == 'skipped') &&
+      (needs.api.result == 'success' || needs.api.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+      - name: Get dependencies (workspace)
+        run: flutter pub get
+      - name: Write the dev app config
+        # Same public values as the web app (repository variables).
+        env:
+          SUPABASE_URL: ${{ vars.DEV_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.DEV_SUPABASE_PUBLISHABLE_KEY }}
+          API_URL: ${{ vars.DEV_API_URL }}
+        run: |
+          jq -n '{APP_ENV: "dev", SUPABASE_URL: env.SUPABASE_URL,
+                  SUPABASE_PUBLISHABLE_KEY: env.SUPABASE_PUBLISHABLE_KEY, API_URL: env.API_URL}'             > "$RUNNER_TEMP/dev.json"
+          jq -e 'all(.[]; . != "")' "$RUNNER_TEMP/dev.json" > /dev/null || {
+            echo "Set the DEV_* repository variables (see infra/README.md)"; exit 1; }
+      - name: Build
+        working-directory: apps/console
+        run: flutter build web --release --dart-define-from-file="$RUNNER_TEMP/dev.json"
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - name: Deploy to Firebase Hosting
+        # The site is created once by a person (infra/README.md, "Staff console").
+        run: npx --yes firebase-tools@14 deploy --only hosting:console --project="$PROJECT" --non-interactive
