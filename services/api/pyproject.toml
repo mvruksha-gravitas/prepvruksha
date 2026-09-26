@@ -57,11 +57,15 @@ source_modules = [
     "prepvruksha_api.auth",
     "prepvruksha_api.profile",
     "prepvruksha_api.consent",
+    "prepvruksha_api.staff",
+    "prepvruksha_api.content",
 ]
 forbidden_modules = [
     "prepvruksha_api.auth.**",
     "prepvruksha_api.profile.**",
     "prepvruksha_api.consent.**",
+    "prepvruksha_api.staff.**",
+    "prepvruksha_api.content.**",
 ]
 # Importing a feature's entry reaches its modules indirectly; that is allowed.
 allow_indirect_imports = true
@@ -71,6 +75,8 @@ ignore_imports = [
     "prepvruksha_api.auth.** -> prepvruksha_api.auth.**",
     "prepvruksha_api.profile.** -> prepvruksha_api.profile.**",
     "prepvruksha_api.consent.** -> prepvruksha_api.consent.**",
+    "prepvruksha_api.staff.** -> prepvruksha_api.staff.**",
+    "prepvruksha_api.content.** -> prepvruksha_api.content.**",
 ]
 
 [[tool.importlinter.contracts]]
@@ -81,5 +87,7 @@ forbidden_modules = [
     "prepvruksha_api.auth",
     "prepvruksha_api.profile",
     "prepvruksha_api.consent",
+    "prepvruksha_api.staff",
+    "prepvruksha_api.content",
     "prepvruksha_api.main",
 ]

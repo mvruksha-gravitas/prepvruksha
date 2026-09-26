@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026: subject-teacher advice recorded in the docs (sub-topics, difficulty, rights status, similarity before launch, question generator); slice 1 plan being updated, not started
+Last updated: 26 Sep 2026: slice 1 in progress on PR #18 (secret scanning, database, API done; console next); Biology sub-topic draft merged (PR #17)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -146,6 +146,7 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 
 Minor, non-urgent improvements. Done in batches when asked, not on the side of other work (see "How to work" in `CLAUDE.md`). Security, privacy and correctness items never go here.
 
+- [ ] **`StarletteDeprecationWarning` in API tests** ("Using `httpx` with `starlette.testclient` is deprecated; install `httpx2`"): comes from FastAPI's `TestClient`, not our code; switch when FastAPI/Starlette settle on the replacement.
 - [ ] **GitHub Actions on Node 20** (deprecated warnings): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
 - [ ] **import-linter for `services/seo`** once it has feature folders (CI skips the step until then; the API and pipeline have contracts).
 - [ ] **Seed "hash update" warning** in Deploy dev (a changed seed file is not re-run on existing projects) and a CLAUDE.md convention that data changes for existing projects go in migrations. Do before prod holds data.
@@ -175,8 +176,21 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
      - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
      - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
-1. **Staff console and uploads** (no AI). **Plan approved 26 Sep; changes for the rights status proposed 26 Sep (awaiting approval); next to build.** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights status and rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
-   - **Secret scanning first** (security, added after the Anthropic key nearly leaked on 26 Sep): gitleaks in CI on every PR and push, and a simple local pre-commit check if it stays simple.
+1. **Staff console and uploads** (no AI). **Plan approved 26 Sep, rights-status changes approved 26 Sep; in progress (branch `feat/slice1-uploads`).** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights status and rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
+   - **Secret scanning first** (security, added after the Anthropic key nearly leaked on 26 Sep): gitleaks in CI on every PR and push, and a simple local pre-commit check if it stays simple. **Done locally (not pushed):** CI job "Secret scan (gitleaks)" (pinned 8.30.1, checksum-verified, full history, part of "CI result") and `.githooks/pre-commit` (enable with `git config core.hooksPath .githooks`). History scan: 48 commits, no leaks.
+   - **Database: done locally (not pushed)**, migration `20260930000100_source_files.sql`:
+     - `source_files`, `import_jobs`, `import_items`; FK `questions.source_file_id`; private bucket `source-files` (PDF/Word, 100 MB, no client storage policies).
+     - RLS: staff read only; `private.can_see_source_file` hides `reference_only` files (and, through them, their items) from reviewers; import jobs visible to content admins only.
+     - Service-role functions (content admins and super admins): `create_source_file` (validates type, size, hash, rights; reuses an unfinished upload of the same content; `duplicate_file` otherwise; audited), `complete_source_file_upload` (object must exist in the bucket with the recorded size; marks `queued` and creates the import job in one transaction), `set_source_file_rights` (reason required; audited old/new; only `reference_only` once questions are published, which retires them, audited).
+     - Tests: pgTAP 348 (new `06_source_files.test.sql`, privileges matrix updated); lint clean; functions checked as `service_role`.
+     - Read functions (migration `20260930000200_source_file_reads.sql`): `get_staff_roles`, `get_source_file`, `list_source_files`, applying the same reference-only rule for the acting staff member (hidden files answer `file_not_found`).
+   - **API: done locally (not pushed).** Features `staff` (`GET /staff/me`; `current_staff` is the one dependency for staff endpoints, where a production sign-in rule can be added) and `content` (`GET /content/files?status=&rights_status=`, `POST /content/files` → file + signed upload URL, `POST /content/files/{id}/complete`, `PATCH /content/files/{id}/rights`); `shared/storage.py` creates signed upload URLs (`x-upsert` so a retried upload can replace a partial object). Writes need content admin or super admin (checked in the API and again in the database). CORS allows `PATCH`. API tests: 82. **Verified against local Supabase** (26 Sep): sign in as +91 99999 00002 (content admin) → create → complete before upload refused (`upload_missing`) → PUT to the signed URL → complete → `queued`; same file again → `duplicate_file`; +91 99999 00003 (reviewer) cannot see the reference-only file, cannot upload (403), and cannot read the object or table directly with their own token.
+   - **Rights status (approved 26 Sep):**
+     - `rights_status` required (`owned_licensed`, `official_pyq`, `reference_only`), no default, recorded in `audit_log` at upload.
+     - `official_pyq` files must record the **exam and year** (e.g. NEET_UG 2023: `pyq_exam_id`, `pyq_year`), used later to label their questions (`source_type = 'pyq'`, `pyq_year`).
+     - **`reference_only` files and their items are visible only to content admins and super admins**, not reviewers (RLS + API).
+     - Content admins and super admins can change the status later (audited: old, new, reason); once a file has published questions it can only move to `reference_only`. The publish block for `reference_only` comes in slice 3.
+     - API: `rights_status` (and PYQ exam/year) on `POST /content/files`; returned and filterable on `GET /content/files`; `PATCH /content/files/{id}/rights`. Console: required choice with one-line explanations, exam/year fields for PYQ, badge and filter in the list.
    - **Database** (one migration):
      - `source_files` (name, type `pdf`/`docx`, size, SHA-256, required **rights status** (`owned_licensed`, `official_pyq`, `reference_only`) and rights note, uploaded by, status `awaiting_upload` → `queued` → … `done`/`failed`, error); **identical files rejected** (unique hash).
      - `import_jobs` (queue for the slice 2 worker) and `import_items` (as in `DATA_MODEL.md`); FK `questions.source_file_id`.
@@ -191,24 +205,25 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
 2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`, including scanned PDFs (Claude reads the page images) and figures saved to Storage as question assets. Suggests sub-topic and difficulty. Items of `reference_only` files are marked `reference` (corpus only).
 3. **Review screen and publishing**: source page beside the parsed question, edit, confirm sub-topic and difficulty, approve (one transaction: question + options + `audit_log`), reject. `reference_only` items cannot be approved.
 4. **Similarity and harder answer-key layouts** (no Mathpix), **before launch**. Embeddings: an open model inside the worker (data stays in India). Every new question compared by meaning against the bank and the reference-only corpus; `similarity_flags` above the threshold (set on real data) block publishing until resolved.
-5. **Question generator** (new module): questions per sub-topic, difficulty and format from chapter content into the review queue (`source_type = 'ai_generated'`); independent second AI solve must agree (else flagged); the subject expert confirms every answer; similarity check on each.
+5. **Question generator** (new module, **after launch**, following the CBT engine): questions per sub-topic, difficulty and format from chapter content into the review queue (`source_type = 'ai_generated'`); independent second AI solve must agree (else flagged); the subject expert confirms every answer; similarity check on each.
 
 Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made staff by SQL); the console's auth is built so a stronger method can be added for production staff (see launch blockers).
 
-### Build order (revised 26 Sep after the subject-teacher advice; weeks in `ROADMAP.md`)
+### Build order (revised 26 Sep; weeks in `ROADMAP.md`)
 
 1. Pipeline slice 1: secret scanning, staff console and uploads with rights status (week 2).
-2. Sub-topics and difficulty: draft tree + migration (week 3; expert review in parallel).
+   - In parallel: draft the NEET sub-topic tree, one subject at a time, Biology first (separate docs/seed PR) for the subject expert.
+2. Sub-topics and difficulty migration (week 3).
 3. Pipeline slice 2: worker (weeks 3–4).
 4. Pipeline slice 3: review and publishing (week 5).
 5. Pipeline slice 4: similarity checks, before launch (weeks 6–7).
-6. Question generator (weeks 7–8).
-7. CBT exam engine (weeks 9–12).
-8. Results and error notebook.
-9. Practice and search.
-10. Public SEO pages.
-11. Live mocks (and the pilot).
-12. Launch: late January 2027 (about 4 weeks later than planned). Moving the generator after the CBT engine would keep launch near early January.
+6. CBT exam engine (weeks 7–10).
+7. Results and error notebook.
+8. Practice and search.
+9. Public SEO pages.
+10. Live mocks (and the pilot).
+11. Launch: early to mid January 2027.
+12. Question generator, after launch (decided 26 Sep, so launch stays near early January).
 
 ## 5. Carry-over notes
 
@@ -219,12 +234,14 @@ Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made 
 - **Deployer permissions:** `github-deployer` cannot change IAM. New public Cloud Run services, or new secrets, are added with the setup script (run by a person), not from GitHub Actions.
 - **Parent consent evidence:** `consents` row (parent name, phone, method, policy version, scope, timestamp, `request_id`) + the `parental_consent_requests` row (sent time, attempts, verified time). Raw codes are never stored or logged outside the dev `LogOtpSender`.
 - **Withdrawing parental consent** is possible from the student's own account for now. Parent accounts (`parent_links`) come later; the parent should be able to withdraw from their side too.
-- **Migration timestamps:** the latest migration is `20260929000100`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.
+- **Migration timestamps:** the latest migration is `20260930000200`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.
 - **Grants:** every new table or view needs explicit grants and an entry in `supabase/tests/database/03_privileges.test.sql`, or the tests fail. New `public` functions need explicit `revoke ... from public, anon, authenticated` (functions default to `EXECUTE` for `PUBLIC` unless revoked). Never grant `TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to API roles.
 - **Answer keys:** `question_options.is_correct` is unreadable by `anon`/`authenticated`, including staff. Client writes to options must not request the row back (PostgREST `Prefer: return=minimal`). The review console needs a server-side function (API or `security definer` with a staff check) to show the answer key. Practice feedback also needs a server-side check.
 - **`exam_reserved` questions** are never public; the SEO build must read only `public.seo_questions` (service role).
 - **Categories:** keep `profiles.category` for central (MCC) categories (`general`, `ews`, `obc_ncl`, `sc`, `st`); optional at signup, required only when using the college predictor. Before the predictor, add `state_category` (KEA categories) and a `pwd` flag.
 - **Audit log:** `audit_log` exists (date-of-birth corrections). Decide in the review-console slice whether publishing/answer-key edits use it or a separate `content_audit` table (as `DATA_MODEL.md` sketches); one table is simpler.
+- **Takedowns (decided 26 Sep):** moving a file to `reference_only` retires its published questions in the same transaction, one `question.retired` audit entry each (in `set_source_file_rights`). Slice 3 must also stop items or questions of `reference_only` files from being published again.
+- **SHA-256 is computed in the browser** and trusted for duplicate detection; the slice 2 worker re-checks it against the stored file.
 - **Deferred schema:** `questions.embedding` + HNSW index (slice 4), FK `questions.source_file_id → source_files` (slice 1), sub-topics and difficulty (before slice 2, `DATA_MODEL.md` section 10), `answer_checks` and `generation_jobs` (generator), `trap_type`, `neet_weightage` values.
 - **iOS flavors** (dev/prod bundle IDs) are not set up; needs a Mac. iOS is Phase 3.
 - **Git author** is fixed (`mVruksha`). The first commit on `main` (`bd933fc`) keeps the old placeholder author; that is fine and should not be rewritten.

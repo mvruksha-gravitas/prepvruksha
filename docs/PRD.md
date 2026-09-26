@@ -72,14 +72,14 @@ Priority: **P0** = needed for the January 2027 launch · **P1** = soon after lau
 
 ### 5.2a Question generator
 
-Generates original questions to fill sub-topics the bank covers thinly. Built after the review screen (pipeline slice 3) and the similarity check (slice 4).
+Generates original questions to fill sub-topics the bank covers thinly. Built after the CBT engine, soon after launch (decided 26 Sep 2026 to keep launch near early January).
 
 | Feature | Priority |
 |---|---|
-| Generate questions per sub-topic and difficulty from chapter content, in all NEET formats (single MCQ, assertion–reason, match-the-following, multi-statement) | P0 |
-| Output goes to the review queue (`status = 'review'`, `source_type = 'ai_generated'`); never published directly | P0 |
-| Answer checks: the generator proposes an answer; a second, independent AI solve (without seeing it) must agree, otherwise the question is flagged; the subject expert must explicitly confirm the answer | P0 |
-| Every generated question goes through the similarity check (bank + reference-only corpus); too-close questions are flagged | P0 |
+| Generate questions per sub-topic and difficulty from chapter content, in all NEET formats (single MCQ, assertion–reason, match-the-following, multi-statement) | P1 |
+| Output goes to the review queue (`status = 'review'`, `source_type = 'ai_generated'`); never published directly | P1 |
+| Answer checks: the generator proposes an answer; a second, independent AI solve (without seeing it) must agree, otherwise the question is flagged; the subject expert must explicitly confirm the answer | P1 |
+| Every generated question goes through the similarity check (bank + reference-only corpus); too-close questions are flagged | P1 |
 | Coverage view: questions per sub-topic × difficulty, to choose what to generate next | P1 |
 
 ### 5.3 CBT exam engine
