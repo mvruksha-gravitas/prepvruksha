@@ -60,3 +60,33 @@ def test_api_refuses_to_start_in_prod_with_test_parent_numbers(tmp_path: Path) -
 def test_api_starts_in_dev_with_test_parent_numbers(tmp_path: Path) -> None:
     result = _start_api(tmp_path, APP_ENV="dev", PARENT_OTP_TEST_CODES='{"919999900006": "123456"}')
     assert result.returncode == 0, result.stderr
+
+
+def _env_file(tmp_path: Path) -> Path:
+    env_file = tmp_path / ".env"
+    env_file.write_text('PARENT_OTP_TEST_CODES={"919999900006": "123456"}\n')
+    return env_file
+
+
+def test_environment_replaces_test_codes_from_env_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PARENT_OTP_TEST_CODES", '{"919999900007": "654321"}')
+    settings = ConsentSettings(_env_file=_env_file(tmp_path))  # type: ignore[call-arg]
+    assert settings.parent_otp_test_codes == {"919999900007": "654321"}
+
+
+def test_empty_environment_value_clears_test_codes_from_env_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PARENT_OTP_TEST_CODES", "{}")
+    settings = ConsentSettings(_env_file=_env_file(tmp_path))  # type: ignore[call-arg]
+    assert settings.parent_otp_test_codes == {}
+
+
+def test_env_file_test_codes_apply_without_an_environment_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PARENT_OTP_TEST_CODES", raising=False)
+    settings = ConsentSettings(_env_file=_env_file(tmp_path))  # type: ignore[call-arg]
+    assert settings.parent_otp_test_codes == {"919999900006": "123456"}
