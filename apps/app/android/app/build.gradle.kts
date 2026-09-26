@@ -29,6 +29,11 @@ android {
         versionName = flutter.versionName
     }
 
+    // Needed for the per-flavor resValue("string", "app_name", ...) below.
+    buildFeatures {
+        resValues = true
+    }
+
     // dev installs side by side with prod (com.mvruksha.prepvruksha.dev).
     // Run with: flutter run --flavor dev
     flavorDimensions += "environment"
