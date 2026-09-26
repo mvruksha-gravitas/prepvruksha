@@ -58,11 +58,35 @@ supabase db push --include-seed                       # apply migrations + seed
 supabase db query --linked "select ..."               # ad-hoc checks via the Management API
 ```
 
+Normally you don't push by hand: when a merge to `main` changes
+`supabase/**`, the Deploy dev workflow pushes migrations and seed to
+`prepvruksha-dev` before deploying the API and web app (see
+`infra/README.md`). Seed files run on every push, so they must stay safe to
+re-run.
+
 Never put the database password or the secret key in any file in this repo.
 
 `supabase test db --linked` does not work with the CLI's temporary login role
 (no access to the `extensions` schema where pgTAP is installed). Run the tests
 locally, where the privileges now match the remote projects.
+
+## Exam dates (`exam_cycles`)
+
+The target exam years offered at signup come from `exam_cycles`
+(`public.target_exam_years`): the first sitting whose date has not passed, and
+the two years after it. With no upcoming sitting on record, signup pauses.
+Content admins keep the dates current; until the console has a screen for it,
+use SQL (as `postgres`):
+
+```sql
+-- Official date announced for NEET-UG 2027:
+update public.exam_cycles c set exam_date = date '2027-05-02', date_confirmed = true
+from public.exams e where e.id = c.exam_id and e.code = 'NEET_UG' and c.exam_year = 2027;
+
+-- Add a later sitting (tentative):
+insert into public.exam_cycles (exam_id, exam_year, exam_date)
+select id, 2030, date '2030-05-05' from public.exams where code = 'NEET_UG';
+```
 
 ## First super admin
 

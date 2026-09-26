@@ -53,6 +53,7 @@ supabase/
   migrations/     SQL migrations (source of truth for schema)
   seed/           Seed data (subjects, chapters, topics, exam patterns)
 infra/            Deployment scripts, env templates (no secrets)
+tool/             Repo tooling (Dart import-boundary check)
 docs/
 ```
 
