@@ -74,7 +74,8 @@ docs/
 - Dart: follow the conventions already used in Vidhyavruksha ERP where they exist; otherwise `flutter_lints`, Riverpod for state, `go_router` for navigation.
 - Python: type hints everywhere, `ruff` + `mypy`, `pytest` for tests.
 - SQL: snake_case, plural table names, `uuid` primary keys, `created_at` / `updated_at` on every table.
-- Every schema change is a migration in `supabase/migrations/`. Never edit the production schema by hand.
+- Every schema change is a migration in `supabase/migrations/`. Never edit the production schema by hand. Never edit a migration that has been pushed; add a new one.
+- Every new table or view needs explicit `GRANT`s for `anon` / `authenticated` / `service_role` in its migration (nothing is granted by default; `supabase/tests/database/03_privileges.test.sql` fails until the table is added to its matrix). Never grant `TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to API roles.
 - Secrets live in Supabase / GCP Secret Manager and local `.env` files that are git-ignored. Never commit keys.
 - Keep Kannada and English as first-class: all user-facing strings go through localisation (`intl` / ARB files).
 

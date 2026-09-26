@@ -47,9 +47,14 @@ test numbers).
 supabase login                                        # once, opens the browser
 supabase link --project-ref hzpuxfgfheizghpipmew      # prompts for the DB password
 supabase db push --include-seed                       # apply migrations + seed
+supabase db query --linked "select ..."               # ad-hoc checks via the Management API
 ```
 
 Never put the database password or the secret key in any file in this repo.
+
+`supabase test db --linked` does not work with the CLI's temporary login role
+(no access to the `extensions` schema where pgTAP is installed). Run the tests
+locally, where the privileges now match the remote projects.
 
 ## First super admin
 
@@ -62,6 +67,11 @@ select id, 'super_admin' from auth.users where phone = '91XXXXXXXXXX';
 ```
 
 ## Access rules in brief
+
+- Nothing is granted by default, locally or on remote projects (migration
+  `20260927000100`). Each migration that adds a table or view must grant
+  exactly what `anon`, `authenticated` and `service_role` need, and add it to
+  the matrix in `tests/database/03_privileges.test.sql`.
 
 - `anon` / `authenticated` can never read `question_options.is_correct`. Answer
   correctness comes only from server-side code using the service role.

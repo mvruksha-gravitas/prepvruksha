@@ -155,4 +155,5 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-26 | Allowed values as `text` + `CHECK`, not Postgres enums | Easier to extend in later migrations |
 | 2026-09-26 | Dart pub workspaces instead of Melos | Built into Dart; one fewer tool |
 | 2026-09-26 | App config via `--dart-define-from-file` (`config/*.json`, git-ignored); Android `dev`/`prod` flavors (`com.mvruksha.prepvruksha[.dev]`) | No keys in the repo; dev and prod builds install side by side |
+| 2026-09-27 | Explicit grants per table; default privileges grant API roles nothing (all environments) | `prepvruksha-dev` has "Automatically expose new tables" off, local grants everything: relying on defaults broke dev and granted `TRUNCATE` (bypasses RLS) to app roles |
 | 2026-09-26 | Local Supabase enables Twilio with placeholder values | Supabase Auth refuses phone sign-in without a provider, even for test numbers; replaced by the DLT-registered provider |
