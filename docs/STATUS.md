@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026: slice 1 part 1 merged (PR #18: secret scanning, database, API) and deployed to dev; signup re-verified on dev; console next; Biology sub-topic draft merged (PR #17)
+Last updated: 26 Sep 2026: **slice 1 done** (PRs #18, #20; staff console live on dev, end-to-end upload verified); next: sub-topics + difficulty (plan proposed); Biology sub-topic draft awaiting the subject expert
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -107,10 +107,10 @@ The target exam years at signup come from data, not from a hard-coded month.
 | Supabase | `supabase start` (Docker Desktop). Test numbers in `config.toml` | Ref `hzpuxfgfheizghpipmew`, Mumbai. Linked from this repo |
 | Migrations | All 13 (via `supabase db reset`) | All 13 applied, up to `20260930000200` (Deploy dev #14, 26 Sep) |
 | Seed | Applied on reset | Syllabus (100 chapters), the two `2026-10-draft` policy versions, NEET-UG exam cycles 2027–2029 (2028/2029 added by SQL) |
-| Users / staff | Test numbers only | 1 test user (+91 99999 00001, "Test Student", minor, signup complete), 0 staff roles, 0 questions (26 Sep) |
+| Users / staff | Test numbers only | Test users +91 99999 00001–00005 (test numbers only). Staff roles (26 Sep): 00002 content admin, 00003 reviewer, 00004 super admin. Made-up source files from the slice 1 test; 0 questions |
 | Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | Test numbers +91 99999 00001–00005 / `123456` (valid until 31 Dec 2027); placeholder Twilio values; OTP expiry 300 s. The test numbers are public: **no real student or personal data on dev** |
 | `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Cloud Run `prepvruksha-api`: `https://prepvruksha-api-765197352192.asia-south1.run.app` (deployed from `main` by Deploy dev) |
-| GCP / Firebase | — | Project `prepvruksha-dev`, `asia-south1`. Web app: `https://prepvruksha-dev.web.app`. See `infra/README.md` |
+| GCP / Firebase | — | Project `prepvruksha-dev`, `asia-south1`. Web app: `https://prepvruksha-dev.web.app`. Staff console: `https://prepvruksha-dev-console.web.app`. See `infra/README.md` |
 | GitHub | — | Repository variables for the dev build and GCP sign-in; environment `dev` (main only) holds `SUPABASE_DB_PASSWORD`. Branch protection on `main`: "CI result" required |
 
 Privileges are identical locally and on dev, so local tests reflect dev.
@@ -120,7 +120,7 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 
 ## 3. Open to-do
 
-- [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
+- [x] **First super admin** on dev: +91 99999 00004 (26 Sep, with the staff console test).
 - [ ] **Remove the unused Supabase token** (security: a live credential nothing uses): delete the `github-deploy-dev` token (supabase.com/dashboard/account/tokens) and the secret (`gh secret delete SUPABASE_ACCESS_TOKEN --env dev --repo mvruksha-gravitas/prepvruksha`).
 - [ ] **Budget alerts** on GCP `prepvruksha-dev` and a spend cap on Supabase (Day 1 item in `ROADMAP.md`, not done yet).
 - [ ] **Anthropic key in Secret Manager** (`prepvruksha-dev`, Mumbai) before slice 2; today it is only in the local `services/pipeline/.env` (key rotated 26 Sep after it nearly leaked; see slice 1, secret scanning).
@@ -179,7 +179,7 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
      - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
      - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
-1. **Staff console and uploads** (no AI). **Plan approved 26 Sep, rights-status changes approved 26 Sep; in progress.** Part 1 (secret scanning, database, API) merged in PR #18 on 26 Sep and deployed to dev (Deploy dev #14: database + API; web unchanged, skipped). After the deploy, signup was clicked through again on `prepvruksha-dev.web.app` (minor with parent consent; the 13–30 age check refused a 2020 birth date as expected). Next: console, hosting and the end-to-end upload on dev, in a new PR.
+1. **Staff console and uploads** (no AI). **Done 26 Sep 2026** (PRs #18 and #20). On dev: Deploy dev published the console to `prepvruksha-dev-console.web.app` and the API with its CORS origin; staff roles set by SQL; the owner uploaded made-up files as 00002 (an official PYQ with exam and year, and a reference-only file), both `queued`; 00003 (reviewer) saw only the PYQ file and no Upload button. Details of what was built:
    - **Console: done locally (branch `feat/slice1-console`, not pushed).**
      - `packages/core`: `ApiClient`/`ApiFailure`, `StaffMember` + `ApiStaffRepository`, `SourceFile`/`RightsInput` + `ApiContentRepository` (upload PUTs the bytes straight to the signed Storage URL), chunked `sha256Hex` with progress (`crypto`). Core tests: 36.
      - **Hosting (committed locally):** `firebase.json` has two targets (`app`, `console`; the console sends `X-Robots-Tag: noindex`); `.firebaserc` maps `console` → `prepvruksha-dev-console`; Deploy dev has a `console` job (runs when `apps/console/**`, shared packages, `pubspec.*`, `firebase.json` or `.firebaserc` change; manual option `console`); the web job deploys only `hosting:app`; `CORS_ORIGIN_REGEX` allows `prepvruksha-dev-console`. **Before merging:** create the site (`infra/README.md`, "Staff console").
