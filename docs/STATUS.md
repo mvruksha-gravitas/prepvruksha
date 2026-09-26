@@ -96,7 +96,7 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **Click through the signup flow in Chrome** against local Supabase + local API: add `"API_URL": "http://127.0.0.1:8000"` to `config/local.json` (now required, or the app shows the config error screen), start the API, sign in with +91 99999 00001, complete the profile as a minor, parent number +91 99999 00006, code `123456`.
 - [ ] **Branch protection:** make "CI result" the only required status check on `main` (after this slice merges).
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
-- [ ] **Before the first dev deploy (you):** create the Supabase secret key `api-dev`, add both secret values (commands in `infra/README.md`), and set the GitHub variable `DEV_SUPABASE_PUBLISHABLE_KEY`. Then merge this slice; check the Deploy dev run, `/health`, and sign in on `https://prepvruksha-dev.web.app`.
+- [ ] **Before the first dev deploy (you):** create the Supabase secret key `apidev`, add both secret values (commands in `infra/README.md`), and set the GitHub variable `DEV_SUPABASE_PUBLISHABLE_KEY`. Then merge this slice; check the Deploy dev run, `/health`, and sign in on `https://prepvruksha-dev.web.app`.
 - [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
 - [ ] **Test phone numbers on `prepvruksha-dev`:** add +91 99999 00001–00005, code `123456`, under Auth > Providers > Phone, with a placeholder SMS provider (see `supabase/README.md`). Then log in from the app with `config/dev.json`.
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.

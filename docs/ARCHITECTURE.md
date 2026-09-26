@@ -180,5 +180,5 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-26 | GitHub Actions sign in to GCP with Workload Identity Federation (only this repo, `main`, `deploy-dev.yml`); no service account keys, no `FIREBASE_TOKEN` | Nothing long-lived to leak from GitHub; access is limited to the deploy workflow on main |
 | 2026-09-26 | Deployer has least access: Cloud Run developer, Artifact Registry writer, act as `api-runtime`, Firebase Hosting admin. The public invoker binding is set once by the setup script | Deploys cannot change IAM or read secrets |
 | 2026-09-26 | Dev deploys run after CI passes on `main` (`workflow_run`), per area (API / web) | Nothing untested reaches dev; unrelated changes do not redeploy |
-| 2026-09-26 | The API uses a dedicated Supabase secret key (`api-dev`), not the default one | Can be rotated or revoked without affecting other tools |
+| 2026-09-26 | The API uses a dedicated Supabase secret key (`apidev`), not the default one | Can be rotated or revoked without affecting other tools |
 | 2026-09-26 | No real student or personal data in `prepvruksha-dev` (`CLAUDE.md` rule 13) | Its test phone numbers and codes are public |

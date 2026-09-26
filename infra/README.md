@@ -61,7 +61,7 @@ the terminal.
 ```bash
 export PATH="$PATH:$LOCALAPPDATA/Google/Cloud SDK/google-cloud-sdk/bin"
 
-# Supabase secret key "api-dev" (dashboard: Project Settings > API Keys > Secret keys).
+# Supabase secret key "apidev" (dashboard: Project Settings > API Keys > Secret keys).
 # Paste it at the prompt (nothing is shown), then Enter.
 read -rs KEY && printf %s "$KEY" | gcloud.cmd secrets versions add SUPABASE_SECRET_KEY --project=prepvruksha-dev --data-file=- ; unset KEY
 
