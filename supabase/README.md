@@ -61,8 +61,15 @@ supabase db query --linked "select ..."               # ad-hoc checks via the Ma
 Normally you don't push by hand: when a merge to `main` changes
 `supabase/**`, the Deploy dev workflow pushes migrations and seed to
 `prepvruksha-dev` before deploying the API and web app (see
-`infra/README.md`). Seed files run on every push, so they must stay safe to
-re-run.
+`infra/README.md`).
+
+**Seed files run once per project.** `db push --include-seed` runs a seed
+file the first time it reaches a project. If the file changes later, the CLI
+only records its new hash ("hash update") and does not run it again. So a
+change to an existing seed file reaches only fresh databases (local resets,
+CI, a new prod project), not dev. Data that must reach dev too goes in by
+hand (SQL, as for exam dates) or in a migration. Seed files must still be
+safe to re-run (`on conflict`) and must not overwrite what content admins edit.
 
 Never put the database password or the secret key in any file in this repo.
 
