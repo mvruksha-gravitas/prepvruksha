@@ -17,11 +17,22 @@ insert into auth.users (id, aud, role, phone) values
   ('eeeeeeee-1111-1111-1111-111111111111', 'authenticated', 'authenticated', '919999900005');
 insert into public.staff_roles (user_id, role) values ('eeeeeeee-1111-1111-1111-111111111111', 'super_admin');
 
+-- Exam cycles independent of the seed and of today's date: a NEET-UG sitting
+-- that passed yesterday and one next May. Valid target years are next year
+-- to next year + 2 (see public.target_exam_years).
+delete from public.exam_cycles;
+insert into public.exam_cycles (exam_id, exam_year, exam_date)
+select e.id, extract(year from d)::smallint, d
+from public.exams e,
+     unnest(array[current_date - 1,
+                  make_date(extract(year from current_date)::int + 1, 5, 2)]) as d
+where e.code = 'NEET_UG';
+
 -- Everything below runs as the API does.
 set local role service_role;
 
 create temporary table t (k text primary key, v text) on commit drop;
-insert into t values ('year', extract(year from current_date)::text);
+insert into t values ('year', (extract(year from current_date)::int + 1)::text);
 
 -- ---------------------------------------------------------------------------
 -- Profile completion
@@ -43,6 +54,14 @@ select throws_ok(
   $$ select public.complete_profile('aaaaaaaa-1111-1111-1111-111111111111', 'Asha',
        (current_date - interval '16 years')::date, 2020::smallint) $$,
   'P0001', 'target_exam_year_invalid', 'a past target exam year is rejected');
+select throws_ok(
+  format($$ select public.complete_profile('aaaaaaaa-1111-1111-1111-111111111111', 'Asha',
+            (current_date - interval '16 years')::date, %s::smallint) $$, extract(year from current_date)::int),
+  'P0001', 'target_exam_year_invalid', 'this year is rejected once its exam date has passed');
+select throws_ok(
+  format($$ select public.complete_profile('aaaaaaaa-1111-1111-1111-111111111111', 'Asha',
+            (current_date - interval '16 years')::date, %s::smallint) $$, (select v from t where k = 'year')::int + 3),
+  'P0001', 'target_exam_year_invalid', 'more than two years after the next exam is rejected');
 select throws_ok(
   format($$ select public.complete_profile('aaaaaaaa-1111-1111-1111-111111111111', '  ',
             (current_date - interval '16 years')::date, %s::smallint) $$, (select v from t where k = 'year')),
@@ -68,7 +87,7 @@ select is(
   'needs_terms', 'adult profile completed');
 select is(
   public.complete_profile('cccccccc-1111-1111-1111-111111111111', 'Chitra',
-    (current_date - interval '14 years')::date, ((select v from t where k = 'year')::int + 3)::smallint),
+    (current_date - interval '14 years')::date, ((select v from t where k = 'year')::int + 2)::smallint),
   'needs_terms', 'sibling profile completed');
 select is(
   public.complete_profile('dddddddd-1111-1111-1111-111111111111', 'Deepa',

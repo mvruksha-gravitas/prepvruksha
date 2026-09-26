@@ -55,7 +55,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('dob-field')), dob);
     await tester.tap(find.byKey(const Key('exam-year-field')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('${DateTime.now().year + 1}').last);
+    await tester.tap(find.text('2028').last);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Continue'));
     await tester.pumpAndSettle();
@@ -93,7 +93,7 @@ void main() {
       expect(find.byType(TermsScreen), findsOneWidget);
       final saved = signup.savedProfile!;
       expect(saved.fullName, 'Asha');
-      expect(saved.targetExamYear, DateTime.now().year + 1);
+      expect(saved.targetExamYear, 2028);
       expect(saved.category, isNull);
       expect(saved.preferredLanguage, 'en');
     });
@@ -124,6 +124,60 @@ void main() {
       await fillProfile(tester, dob: yearsAgo(16));
 
       expect(find.textContaining("can't be changed here"), findsOneWidget);
+    });
+
+    testWidgets('offers exactly the exam years from the database rule', (
+      tester,
+    ) async {
+      profiles.targetExamYears = [2028, 2029, 2030];
+      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('exam-year-field')));
+      await tester.pumpAndSettle();
+
+      for (final year in ['2028', '2029', '2030']) {
+        expect(find.text(year), findsWidgets);
+      }
+      expect(find.text('2027'), findsNothing);
+      expect(find.text('2031'), findsNothing);
+    });
+
+    testWidgets('without an upcoming exam date, signup is paused', (
+      tester,
+    ) async {
+      profiles.targetExamYears = [];
+      await pumpApp(tester);
+      expect(find.byKey(const Key('exam-years-unavailable')), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('name-field')), 'Asha');
+      await tester.enterText(find.byKey(const Key('dob-field')), yearsAgo(16));
+      await tester.scrollUntilVisible(
+        find.text('Continue'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choose your exam year'), findsOneWidget);
+      expect(signup.savedProfile, isNull);
+    });
+
+    testWidgets('a failed load of the exam years can be retried', (
+      tester,
+    ) async {
+      profiles.targetExamYearsError = Exception('offline');
+      await pumpApp(tester);
+      expect(
+        find.textContaining("Couldn't load the exam years"),
+        findsOneWidget,
+      );
+
+      profiles.targetExamYearsError = null;
+      await tester.tap(find.byKey(const Key('exam-years-retry')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining("Couldn't load the exam years"), findsNothing);
+      await tester.tap(find.byKey(const Key('exam-year-field')));
+      await tester.pumpAndSettle();
+      expect(find.text('2027'), findsWidgets);
     });
   });
 

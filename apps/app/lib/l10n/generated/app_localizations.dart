@@ -296,6 +296,18 @@ abstract class AppLocalizations {
   /// **'Choose your exam year'**
   String get profileExamYearRequired;
 
+  /// No description provided for @profileExamYearsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the exam years. Check your connection and try again.'**
+  String get profileExamYearsLoadFailed;
+
+  /// No description provided for @profileExamYearsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The next NEET exam date isn\'t available yet, so signup is paused. Please try again later.'**
+  String get profileExamYearsUnavailable;
+
   /// No description provided for @profileCategoryLabel.
   ///
   /// In en, this message translates to:

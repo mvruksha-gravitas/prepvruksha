@@ -27,6 +27,7 @@ Columns listed are the important ones, not exhaustive. Migrations are the source
 | Table | Key columns | Notes |
 |---|---|---|
 | `exams` | `code` (`NEET_UG`, later `KCET`, `PU_BOARD`), `slug`, `name_en`, `name_kn`, `name_kn_reviewed` | Supports adding exams later. |
+| `exam_cycles` | `exam_id`, `exam_year`, `exam_date`, `date_confirmed` | One row per sitting. `public.target_exam_years(exam_code)` = the first sitting whose date has not passed (India time) and the two years after it; used by the profile step and enforced on `profiles.target_exam_year`. Content admins keep the next sitting on record. |
 | `subjects` | `exam_id`, `code`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `sort_order` | Physics, Chemistry, Botany, Zoology. NCERT Biology chapters are split into Botany and Zoology following common NEET practice. |
 | `chapters` | `subject_id`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `class_level` (11/12, null for units like experimental skills), `ncert_ref`, `neet_weightage`, `is_removed`, `sort_order` | `is_removed` = no longer in the exam syllabus; kept for tagging older PYQs. |
 | `topics` | `chapter_id`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `sort_order` | |
@@ -95,7 +96,7 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 | Published questions, options, explanations | Everyone, except `exam_reserved` questions. `question_options.is_correct` is never readable by `anon`/`authenticated`: correctness comes only from server-side code (after submission for mocks, per question for practice, the SEO build, review-console functions) | Reviewers and content admins (only content admins delete) |
 | `seo_questions` view | Service role only (the SEO build): published and not `exam_reserved` | — |
 | Draft / review content, import tables | Reviewers, content admins | Reviewers, content admins, pipeline service |
-| Syllabus (`exams` … `topics`) | Everyone | Content admins |
+| Syllabus (`exams`, `exam_cycles` … `topics`) | Everyone | Content admins |
 | `staff_roles` | The user (own roles); super admins | Super admins |
 | `profiles` | The user; institution staff for their members (limited columns); linked parents per `visibility` | The user |
 | `attempts`, `attempt_answers`, analytics | The user; teachers/admins of an institution the user belongs to (only for that institution's tests); parents per `visibility` | API service only (scores); app only through the API |

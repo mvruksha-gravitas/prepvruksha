@@ -119,6 +119,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileExamYearRequired => 'Choose your exam year';
 
   @override
+  String get profileExamYearsLoadFailed =>
+      'Couldn\'t load the exam years. Check your connection and try again.';
+
+  @override
+  String get profileExamYearsUnavailable =>
+      'The next NEET exam date isn\'t available yet, so signup is paused. Please try again later.';
+
+  @override
   String get profileCategoryLabel => 'Category (optional)';
 
   @override

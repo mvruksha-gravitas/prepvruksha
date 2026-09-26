@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: dev deploy slice, merged (PR #6) and verified on dev (26 Sep)
+Last updated: exam cycles slice (branch `feat/exam-cycles`)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -78,6 +78,18 @@ Runbook: `infra/README.md`.
   - **Signup clicked through in Chrome on `https://prepvruksha-dev.web.app`** with +91 99999 00001: profile (minor), terms, parent +91 99999 00006 / `123456`, then home. The database has one test profile with two consents.
 - **Rule 13 in `CLAUDE.md`:** no real student or personal data in `prepvruksha-dev`.
 
+### Exam cycles — branch `feat/exam-cycles`
+
+The target exam years at signup come from data, not from a hard-coded month.
+
+- **Database** (migration `20260929000100_exam_cycles.sql`, seed `03_exam_cycles.sql`):
+  - `exam_cycles` (exam, year, date, `date_confirmed`): everyone reads, content admins write.
+  - `public.target_exam_years(exam_code, as_of)` returns the first sitting whose date is today or later (India time) plus the two years after it, or empty when none is recorded.
+  - `complete_profile` and a new `profiles` trigger (`private.guard_target_exam_year`) both use the rule, so direct client updates of `target_exam_year` are checked too. Only changes are checked, so a year chosen earlier stays valid after its exam.
+  - Seed: NEET-UG 2027 on **2 May 2027** (first Sunday of May, NEET's usual pattern), `date_confirmed = false`.
+- **App:** the profile step lists the years from the rule. It shows a retry when they fail to load, and a "signup paused" message when no upcoming date is recorded.
+- **Tests:** pgTAP 265 (new `05_exam_cycles.test.sql`; `04_signup` uses its own cycles, independent of the date), app 33.
+
 ## 2. Environments
 
 | | Local | `prepvruksha-dev` |
@@ -102,7 +114,8 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
 - [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
-- [ ] **Exam year list:** the profile step (app and `complete_profile`) offers the current year through +3, so 2026 is still offered after NEET 2026 is over. Decide the cutoff (e.g. from June, start at next year) and change both together.
+- [ ] **Push the exam-cycles migration to dev before merging `feat/exam-cycles`:** `supabase db push --include-seed`, then check `select public.target_exam_years('NEET_UG')` returns `{2027,2028,2029}`. Otherwise the deployed web app can't load the exam years.
+- [ ] **Keep the next exam date on record:** when NTA announces NEET-UG 2027, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2028 sitting **before 2 May 2027**, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL.
 - [ ] **GitHub Actions on Node 20** (deprecated): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
 - [ ] **Account deletion and data erasure requests** (DPDP), a later slice: delete/anonymise user data on request, keep what the law requires (consent records), and decide how long withdrawn accounts are kept.
@@ -126,7 +139,7 @@ Upload files in the console → extracted, parsed, tagged, de-duplicated → rev
 - **Deployer permissions:** `github-deployer` cannot change IAM. New public Cloud Run services, or new secrets, are added with the setup script (run by a person), not from GitHub Actions.
 - **Parent consent evidence:** `consents` row (parent name, phone, method, policy version, scope, timestamp, `request_id`) + the `parental_consent_requests` row (sent time, attempts, verified time). Raw codes are never stored or logged outside the dev `LogOtpSender`.
 - **Withdrawing parental consent** is possible from the student's own account for now. Parent accounts (`parent_links`) come later; the parent should be able to withdraw from their side too.
-- **Migration timestamps:** the latest migration is `20260928000400`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.
+- **Migration timestamps:** the latest migration is `20260929000100`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.
 - **Grants:** every new table or view needs explicit grants and an entry in `supabase/tests/database/03_privileges.test.sql`, or the tests fail. New `public` functions need explicit `revoke ... from public, anon, authenticated` (functions default to `EXECUTE` for `PUBLIC` unless revoked). Never grant `TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to API roles.
 - **Answer keys:** `question_options.is_correct` is unreadable by `anon`/`authenticated`, including staff. Client writes to options must not request the row back (PostgREST `Prefer: return=minimal`). The review console needs a server-side function (API or `security definer` with a staff check) to show the answer key. Practice feedback also needs a server-side check.
 - **`exam_reserved` questions** are never public; the SEO build must read only `public.seo_questions` (service role).

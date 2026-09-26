@@ -182,3 +182,5 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-26 | Dev deploys run after CI passes on `main` (`workflow_run`), per area (API / web) | Nothing untested reaches dev; unrelated changes do not redeploy |
 | 2026-09-26 | The API uses a dedicated Supabase secret key (`apidev`), not the default one | Can be rotated or revoked without affecting other tools |
 | 2026-09-26 | No real student or personal data in `prepvruksha-dev` (`CLAUDE.md` rule 13) | Its test phone numbers and codes are public |
+| 2026-09-26 | Target exam years come from `exam_cycles` data via one Postgres function (`target_exam_years`), used by the app and enforced by `complete_profile` and a `profiles` trigger | No hard-coded month; exam dates change yearly and differ per exam; one rule in one place |
+| 2026-09-26 | No upcoming exam date on record means no years are offered (signup pauses) rather than guessing | A guessed year could be wrong; the missing date is a content task, tracked in STATUS |
