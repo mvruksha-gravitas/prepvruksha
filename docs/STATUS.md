@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026, slice 0 (import prototype) built on branch `feat/pipeline-prototype`, not run against the API yet
+Last updated: 26 Sep 2026, slice 0 (import prototype) done on branch `feat/pipeline-prototype`; slice 1 plan proposed
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -137,14 +137,15 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] Log in through the running app on the Android emulator. Emulator + local Supabase needs `http://10.0.2.2:54321`.
 - [ ] Build the `prod` flavor once, and a release build (needs a signing key; never commit it).
 - [ ] Choose the DLT-registered SMS/WhatsApp OTP provider (launch blocker above; long-lead item in `ROADMAP.md`).
-- [ ] **Slice 0 inputs (you):** the 10 sample files in `C:\prepvruksha-samples` with the rights confirmed for each (4 there on 26 Sep: two Class 10/12 Maths PDFs and two Computer Science Word files, none NEET, no scanned PDF); the answer sheet filled in; the Anthropic key (monthly spend limit) in `services/pipeline/.env`, and in Secret Manager before slice 2.
+- [ ] **Real NEET files test (you + me):** your real NEET files with the rights confirmed for each, and a hand-checked answer sheet. Then compare **Opus 5 at `medium` against `high`**; if `medium` has 0 invented answers and no drop in accuracy, make `medium` the default (`PARSE_EFFORT`).
+- [ ] **Anthropic key in Secret Manager** (`prepvruksha-dev`, Mumbai) before slice 2; today it is only in the local `services/pipeline/.env`.
 - [ ] **Budget alerts** on GCP `prepvruksha-dev` and a spend cap on Supabase (Day 1 item in `ROADMAP.md`, not done yet).
 
 ## 4. Current slice: import pipeline + review console (Weeks 2–4 in `ROADMAP.md`)
 
 Plan approved 26 Sep 2026, in five slices, each end to end:
 
-0. **Command-line prototype** (`services/pipeline`, branch `feat/pipeline-prototype`, in progress). Parses a local folder of samples (`C:\prepvruksha-samples`, never committed; API key from a local `.env` only) with the Claude API into the fixed JSON format, and reports accuracy against a hand-checked answer sheet: per format, formulas, answers, cost per page. For scanned pages it tests Claude reading page images; Mathpix is decided from the results. No database or UI. `extract` and `parse` are reused by the slice 2 worker. How to run: `services/pipeline/README.md`.
+0. **Command-line prototype** (`services/pipeline`, branch `feat/pipeline-prototype`, done). Parses a local folder of samples (`C:\prepvruksha-samples`, never committed; API key from a local `.env` only) with the Claude API into the fixed JSON format, and reports accuracy against a hand-checked answer sheet: per format, formulas, answers, cost per page. For scanned pages it tests Claude reading page images; Mathpix is decided from the results. No database or UI. `extract` and `parse` are reused by the slice 2 worker. How to run: `services/pipeline/README.md`.
    - **First results (26 Sep, 3 NEET-style sample files, 72 questions: Word, text PDF, scanned PDF):**
 
      | Setting | Found | Format right | Answers right | Answers invented | Cost | Per question |
@@ -155,11 +156,15 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - Claude read the scanned pages as well as the text pages with both models ($0.064 a page on Opus, $0.026 on Sonnet), so Mathpix is not needed so far.
      - Formula syntax was OK on 33/33 questions with formulas. Text-PDF subscripts (H2SO4) came back as LaTeX.
      - The two models differ only in layout (match-the-following as a table vs lines; units in LaTeX vs plain).
-     - The sample is small and clean, so the model choice waits for the real files.
+     - Set A Q22's broken options ("and (d) only") were a flaw in the sample file itself, not the pipeline; both models flagged it `unclear_text`.
+   - **Decisions (26 Sep):**
+     - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
+     - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
+     - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
 1. **Staff console and uploads** (no AI): `source_files` / `import_jobs` / `import_items`, private Storage bucket, `content` API feature, console sign-in with a staff guard, upload with a rights note, file list.
-2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`. Scanned PDFs move here if slice 0 shows Claude reads them well enough.
+2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`, including scanned PDFs (Claude reads the page images) and figures saved to Storage as question assets.
 3. **Review screen and publishing**: source page beside the parsed question, edit, approve (one transaction: question + options + `audit_log`), reject.
-4. **Duplicates, separate answer keys, Mathpix (only if needed)**. Embeddings: an open model inside the worker (data stays in India), comparison brought to this slice.
+4. **Duplicates and harder answer-key layouts** (no Mathpix). Embeddings: an open model inside the worker (data stays in India), comparison brought to this slice.
 
 Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made staff by SQL); the console's auth is built so a stronger method can be added for production staff (see launch blockers).
 
