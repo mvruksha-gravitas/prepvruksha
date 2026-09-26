@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: Deploy dev database step (branch `ci/deploy-dev-database`)
+Last updated: 26 Sep 2026, after PR #11 (dev deploy pipeline with a database step; exam cycles)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -44,7 +44,7 @@ Order of steps for a signed-in user: **profile → terms → parental consent (u
   - Parent code limits: 60 s between codes, 5 codes per user and 5 per parent number per rolling 24 h (one parent may consent for several children), 10 min expiry, 5 attempts per code.
 - **API** (`services/api`): Supabase JWT verification via JWKS; `GET /me/signup`, `PUT /me/profile`, `POST /me/consents/terms`, `POST /me/consents/parental` (send / resend / change number), `POST /me/consents/parental/verify`, `POST /me/consents/{terms|parental}/withdraw`. Parent codes: 6 digits, HMAC-SHA256 keyed with `OTP_HMAC_KEY` and bound to the user. Dev delivery = `LogOtpSender` (code in the API log); test parent numbers with fixed codes via `PARENT_OTP_TEST_CODES`. CORS for local Flutter web.
 - **App:** gate screen (loading / error + retry), profile form (DD/MM/YYYY date of birth with a "can't be changed later" note, exam year, optional category, language), terms screen + placeholder policy page, parent consent screen (form → waiting view with code entry, resend after the wait, change number, sign out), consent withdrawal on home (with confirmation). Language choice saved to `profiles.preferred_language` and restored once the profile is complete. `AppConfig` now requires `API_URL`.
-- **Tests:** 244 pgTAP (new `04_signup.test.sql`), API 39 pytest, core 26, app 30, console 1, ui_kit 1. Verified end to end against local Supabase + local API over HTTP (sign in → profile → terms → parent code → verify → withdraw; app clients get 403 on the RPC functions and on writing `date_of_birth`). The Flutter web build compiles; **the new screens have not been clicked through in Chrome yet** (see to-do).
+- **Tests:** 244 pgTAP (new `04_signup.test.sql`), API 39 pytest, core 26, app 30, console 1, ui_kit 1. Verified end to end against local Supabase + local API over HTTP (sign in → profile → terms → parent code → verify → withdraw; app clients get 403 on the RPC functions and on writing `date_of_birth`). Clicked through in Chrome on the dev web app on 26 Sep (see Dev deploy below).
 
 ### Modular structure — PRs #4 and #5, merged to `main`
 
@@ -53,7 +53,7 @@ Feature-first layout per "Modularity" in `CLAUDE.md`. No behaviour change.
 - **API** (`services/api/src/prepvruksha_api/`): `auth/` (JWT verification), `profile/` (`GET /me/signup`, `PUT /me/profile`), `consent/` (terms, parent codes, withdrawal), `shared/` (settings, Supabase RPC, phone numbers, signup state + rule-error mapping). Each feature's `__init__.py` is its public entry. Tests mirror it (`tests/<feature>/`, fakes in `tests/conftest.py`).
 - **App** (`apps/app/lib/src/`): `auth/`, `profile/` (profile step, language), `consent/` (signup state, gate, terms, policy, parent consent), `home/`, each with an entry file `<feature>.dart`; `app/` (app, router, config error) and `shared/` (routes, `appConfigProvider`). Tests: `test/<feature>/` and cross-feature `test/flows/`.
 - **Boundary checks:** `import-linter` contracts in `services/api/pyproject.toml` (`uv run lint-imports`); `tool/check_import_boundaries.dart` for Dart (`dart run tool/check_import_boundaries.dart`). Both run in CI.
-- **CI:** jobs run only when their folders change (`dorny/paths-filter`); **"CI result"** always runs and is the single required check.
+- **CI:** jobs run only when their folders change (`dorny/paths-filter`); **"CI result"** always runs and is the only required status check in `main`'s branch protection.
 - Tests: API 39, app 30 (unchanged counts).
 - **Consent config** (follow-up PR): parent-code settings (`OTP_HMAC_KEY`, `PARENT_OTP_SENDER`, `PARENT_OTP_TEST_CODES`) and the prod safety check moved to `consent/config.py`; `main.py` still refuses to start prod with the log sender or test parent numbers (tested by starting the app in a subprocess). API tests: 46.
 
@@ -78,12 +78,13 @@ Runbook: `infra/README.md`.
   - **Signup clicked through in Chrome on `https://prepvruksha-dev.web.app`** with +91 99999 00001: profile (minor), terms, parent +91 99999 00006 / `123456`, then home. The database has one test profile with two consents.
 - **Rule 13 in `CLAUDE.md`:** no real student or personal data in `prepvruksha-dev`.
 
-### Deploy dev: database step — PR #10 + branch `ci/db-push-without-token`
+### Deploy dev: database step — PRs #10 and #11, merged to `main`
 
 - When `supabase/**` changes, Deploy dev first runs `supabase db push --include-seed` against `prepvruksha-dev`. A dry-run is logged first, and a check afterwards confirms nothing is left to push.
 - The order is database, then API, then web. A failed or cancelled step stops the steps after it.
 - The manual run can target `all`, `database`, `both`, `api` or `web`.
 - The only credential is `SUPABASE_DB_PASSWORD`, a secret of the GitHub `dev` environment (limited to `main`). The job connects with `supabase db push --db-url` through the session pooler. No Supabase access token is used, because `supabase link` would need a token that can read the project's API keys (first run failed with `api_gateway_keys_read`).
+- Verified: after the #10 and #11 merges, the database step was skipped (nothing under `supabase/**` changed) and the API and web still deployed. **The first real database run (manual, target `database`) is still to do** (see to-do).
 
 ### Exam cycles — PR #8, merged to `main`, on dev
 
@@ -102,12 +103,13 @@ The target exam years at signup come from data, not from a hard-coded month.
 | | Local | `prepvruksha-dev` |
 |---|---|---|
 | Supabase | `supabase start` (Docker Desktop). Test numbers in `config.toml` | Ref `hzpuxfgfheizghpipmew`, Mumbai. Linked from this repo |
-| Migrations | All 10 (via `supabase db reset`) | All 10 applied, up to `20260928000400` (checked 26 Sep with `supabase migration list --linked`) |
-| Seed | Applied on reset | Syllabus (100 chapters) and the two `2026-10-draft` policy versions |
+| Migrations | All 11 (via `supabase db reset`) | All 11 applied, up to `20260929000100` (checked 26 Sep) |
+| Seed | Applied on reset | Syllabus (100 chapters), the two `2026-10-draft` policy versions, NEET-UG 2027 exam cycle (2028/2029 rows pending) |
 | Users / staff | Test numbers only | 1 test user (+91 99999 00001, "Test Student", minor, signup complete), 0 staff roles, 0 questions (26 Sep) |
 | Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | Test numbers +91 99999 00001–00005 / `123456` (valid until 31 Dec 2027); placeholder Twilio values; OTP expiry 300 s. The test numbers are public: **no real student or personal data on dev** |
 | `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Cloud Run `prepvruksha-api`: `https://prepvruksha-api-765197352192.asia-south1.run.app` (deployed from `main` by Deploy dev) |
 | GCP / Firebase | — | Project `prepvruksha-dev`, `asia-south1`. Web app: `https://prepvruksha-dev.web.app`. See `infra/README.md` |
+| GitHub | — | Repository variables for the dev build and GCP sign-in; environment `dev` (main only) holds `SUPABASE_DB_PASSWORD`. Branch protection on `main`: "CI result" required |
 
 Privileges are identical locally and on dev, so local tests reflect dev.
 `supabase test db --linked` does not work (the CLI's temporary role cannot see pgTAP in `extensions`); verify dev with the Data API or `supabase db query --linked`.
@@ -116,13 +118,13 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 
 ## 3. Open to-do
 
-- [ ] **Click through the signup flow in Chrome** against local Supabase + local API: add `"API_URL": "http://127.0.0.1:8000"` to `config/local.json` (now required, or the app shows the config error screen), start the API, sign in with +91 99999 00001, complete the profile as a minor, parent number +91 99999 00006, code `123456`.
-- [ ] **Branch protection:** make "CI result" the only required status check on `main` (after this slice merges).
+- [ ] **First database run of Deploy dev:** `gh workflow run deploy-dev.yml --ref main -f target=database --repo mvruksha-gravitas/prepvruksha`. It pushes the NEET 2028/2029 seed rows; then check `exam_cycles` on dev has 2027, 2028 and 2029.
+- [ ] **Repository visibility:** the GitHub repository is **public**, while `ROADMAP.md` planned a private one. No secrets are in it (only project IDs, URLs and the public test numbers), but decide whether it should be private.
+- [ ] Local signup click-through (optional now that dev is verified): needs `"API_URL": "http://127.0.0.1:8000"` in `config/local.json` and the local API running.
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
 - [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
 - [ ] **Remove the unused Supabase token** after the database step works without it: delete the `github-deploy-dev` token (supabase.com/dashboard/account/tokens) and the secret (`gh secret delete SUPABASE_ACCESS_TOKEN --env dev --repo mvruksha-gravitas/prepvruksha`).
-- [ ] **NEET 2028/2029 seed rows on dev** (PR #9, merged): push them with `supabase db push --include-seed`, or run Deploy dev by hand with target `database`. Then check `exam_cycles` has 2027, 2028 and 2029.
 - [ ] **Keep exam dates on record:** NEET-UG 2027, 2028 and 2029 are tentative (first Sunday of May, `date_confirmed = false`). When NTA announces a date, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2030 sitting before 6 May 2029, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL.
 - [ ] **GitHub Actions on Node 20** (deprecated): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
@@ -133,6 +135,7 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] Log in through the running app on the Android emulator. Emulator + local Supabase needs `http://10.0.2.2:54321`.
 - [ ] Build the `prod` flavor once, and a release build (needs a signing key; never commit it).
 - [ ] Choose the DLT-registered SMS/WhatsApp OTP provider (launch blocker above; long-lead item in `ROADMAP.md`).
+- [ ] **Budget alerts** on GCP `prepvruksha-dev` and a spend cap on Supabase (Day 1 item in `ROADMAP.md`, not done yet).
 
 ## 4. Next slice: import pipeline + review console (Weeks 2–4 in `ROADMAP.md`)
 

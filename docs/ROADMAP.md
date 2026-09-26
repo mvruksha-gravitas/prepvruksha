@@ -1,6 +1,6 @@
 # Roadmap — PrepVruksha
 
-Version 0.1 · 25 September 2026
+Version 0.2 · 26 September 2026 (progress marked; details in `STATUS.md`)
 
 Target: CBT mock engine and weekly live mocks running by **January 2027**, ahead of the first
 CBT-mode NEET (expected around May 2027). Dates below assume one developer plus
@@ -24,14 +24,15 @@ Don't set up every service in advance. Add each one when the slice that needs it
 
 ### Day 1 — dev environment
 
-- [ ] GitHub repository `prepvruksha` (private); add this folder; branch protection on `main`.
-- [ ] Supabase organisation; project `prepvruksha-dev` in the **Mumbai** region; enable the `vector` extension.
+- [x] GitHub repository `prepvruksha`; branch protection on `main` ("CI result" required). Note: the repository is currently **public**, not private (decision open in `STATUS.md`).
+- [x] Supabase organisation; project `prepvruksha-dev` in the **Mumbai** region; enable the `vector` extension.
 - [x] Supabase CLI locally (Docker Desktop) — `supabase init`, `supabase start` for a local database.
-- [ ] Google Cloud project `prepvruksha-dev` (this is also the Firebase project): enable Cloud Run, Artifact Registry, Secret Manager, Cloud Scheduler; default region `asia-south1`.
-- [ ] Firebase: add the project, enable Hosting and Cloud Messaging only.
+- [x] Google Cloud project `prepvruksha-dev` (this is also the Firebase project): Cloud Run, Artifact Registry, Secret Manager enabled (`infra/gcp-dev-setup.sh`); region `asia-south1`. Cloud Scheduler is added with the first scheduled job (nightly SEO build).
+- [x] Firebase: project added; Hosting (`prepvruksha-dev.web.app`) and Cloud Messaging only.
 - [ ] **Budget alerts** on GCP and a spend cap on Supabase.
 - [ ] API accounts: Anthropic (Claude API), Mathpix. Keys into Secret Manager and a local `.env`.
 - [x] Flutter: create `apps/app`, `apps/console`, `packages/core`, `packages/ui_kit` (pub workspaces).
+- [x] CI/CD: per-area CI with one required check; Deploy dev after CI passes on `main` (database, then API on Cloud Run, then web app on Firebase Hosting); keyless sign-in to GCP.
 
 ### Before public launch — production
 
@@ -47,7 +48,7 @@ Don't set up every service in advance. Add each one when the slice that needs it
 
 | Weeks | Slice | Done when |
 |---|---|---|
-| 1 | **Foundations** | Repo, CI (lint + tests), local Supabase, first migrations (profiles, syllabus, questions, options), seed subjects/chapters/topics, phone OTP login working in the app |
+| 1 ✔ | **Foundations** | Repo, CI (lint + tests), local Supabase, first migrations (profiles, syllabus, questions, options), seed subjects/chapters/topics, phone OTP login working in the app |
 | 2–4 | **Import pipeline + review console** | Upload files in the console → extracted, parsed, tagged, de-duplicated → review screen with source page beside parsed question → approve publishes. Test on 10 of the messiest files first and measure accuracy |
 | 3–12 (ongoing) | **Content** | Reviewers publishing continuously; target a few thousand reviewed questions by launch, covering every chapter |
 | 5–8 | **CBT exam engine** | NTA-style interface, exam-day sequence, pattern from `exam_patterns`, local saving + batched sync, resume after disconnect, server-side scoring. Load-tested at 5,000 simulated students |
@@ -56,6 +57,8 @@ Don't set up every service in advance. Add each one when the slice that needs it
 | 10–11 | **Public SEO pages** | Static question pages, hub pages, sitemaps deployed nightly; Search Console live |
 | 11–12 | **Live mocks + pilot** | Scheduled all-India mock with scale-up routine; 2–3 pilot PU colleges onboarded manually; bug-fix buffer |
 | Jan 2027 | **Launch** | Weekly live mocks begin; Android app on Play Store; web app live |
+
+Done by 26 Sep 2026 (see `STATUS.md`): Foundations; signup and parental consent (DPDP); feature-first code layout with boundary checks; dev deploy pipeline; target exam years from `exam_cycles` data. Next: import pipeline + review console.
 
 Publish the first reviewed question pages as early as week 6 — search ranking takes months.
 

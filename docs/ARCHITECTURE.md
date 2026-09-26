@@ -127,7 +127,7 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 
 - RLS on every table with user or institution data; policy tests in CI.
 - Service role key used only inside `services/*`, never in apps.
-- Secrets: GCP Secret Manager for services; `.env` (git-ignored) locally.
+- Secrets: GCP Secret Manager for services; `.env` (git-ignored) locally; the dev database password for CI deploys in the GitHub `dev` environment (main only). GitHub Actions reach GCP through Workload Identity Federation, with no keys. Runbook: `infra/README.md`.
 - AI calls send question content and anonymous answer data only.
 - Under-18 signup requires recorded parental consent (`consents` table), given by the parent telling the student a code sent to the parent's phone. Signup status is derived at the time of checking, so the requirement ends on the 18th birthday.
 - No behavioural tracking or targeted advertising for users under 18.
