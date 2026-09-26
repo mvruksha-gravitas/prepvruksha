@@ -2,18 +2,32 @@
   "@@locale": "en",
   "appTitle": "PrepVruksha",
   "switchLanguage": "ಕನ್ನಡ",
-  "@switchLanguage": { "description": "Button that switches the app to the other language; shown in that language." },
+  "@switchLanguage": {
+    "description": "Button that switches the app to the other language; shown in that language."
+  },
   "phoneTitle": "Sign in with your phone",
   "phoneLabel": "Mobile number",
   "phoneInvalid": "Enter a valid 10-digit Indian mobile number",
   "sendCode": "Send code",
   "otpTitle": "Enter the code",
   "otpSentTo": "We sent a 6-digit code to {phone}",
-  "@otpSentTo": { "placeholders": { "phone": { "type": "String" } } },
+  "@otpSentTo": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
   "otpLabel": "6-digit code",
   "verify": "Verify",
   "resendIn": "Resend code in {seconds}s",
-  "@resendIn": { "placeholders": { "seconds": { "type": "int" } } },
+  "@resendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "resend": "Resend code",
   "changeNumber": "Change number",
   "errorInvalidCode": "That code is incorrect or has expired. Check it or request a new one.",
@@ -22,7 +36,103 @@
   "errorUnknown": "Something went wrong. Please try again.",
   "homeWelcome": "Welcome",
   "homeSignedInAs": "Signed in as {phone}",
-  "@homeSignedInAs": { "placeholders": { "phone": { "type": "String" } } },
-  "homeProfileIncomplete": "Complete your profile to get started.",
-  "signOut": "Sign out"
+  "@homeSignedInAs": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "signOut": "Sign out",
+  "retry": "Try again",
+  "cancel": "Cancel",
+  "continueButton": "Continue",
+  "profileTitle": "About you",
+  "profileIntro": "We use these details to set up your preparation.",
+  "profileNameLabel": "Full name",
+  "profileNameRequired": "Enter your name",
+  "profileDobLabel": "Date of birth",
+  "profileDobHint": "DD/MM/YYYY",
+  "@profileDobHint": {
+    "description": "Date format hint; keep DD/MM/YYYY in Latin letters."
+  },
+  "profileDobInvalid": "Enter your date of birth as DD/MM/YYYY",
+  "profileDobOnce": "Check this carefully: your date of birth can't be changed later.",
+  "profileExamYearLabel": "NEET exam year",
+  "profileExamYearRequired": "Choose your exam year",
+  "profileCategoryLabel": "Category (optional)",
+  "profileCategoryHelp": "Needed later only for the college predictor.",
+  "categoryNone": "Prefer not to say",
+  "categoryGeneral": "General",
+  "categoryEws": "EWS",
+  "categoryObcNcl": "OBC (non-creamy layer)",
+  "categorySc": "SC",
+  "categorySt": "ST",
+  "profileLanguageLabel": "App language",
+  "languageEnglish": "English",
+  "languageKannada": "ಕನ್ನಡ",
+  "@languageKannada": {
+    "description": "Always shown in Kannada."
+  },
+  "termsTitle": "Terms and privacy",
+  "termsIntro": "Before you start, please read and accept our terms of use and privacy policy.",
+  "termsRead": "Read the terms and privacy policy",
+  "termsAgree": "I have read and agree to the terms of use and privacy policy",
+  "termsAccept": "Accept and continue",
+  "policyTitle": "Terms and privacy policy",
+  "policyVersion": "Version {version}",
+  "@policyVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "policyPlaceholderBody": "This is a draft. The final terms of use and privacy policy are being prepared and will appear here before PrepVruksha opens to students.\n\nIn short: we use your phone number to sign you in, and your answers and results to show your progress. Students under 18 need a parent's or guardian's permission. We never show targeted advertising to students under 18, never track their behaviour for advertising, and never send your name or phone number to AI services. You can withdraw your consent at any time.",
+  "parentTitle": "Parent's permission",
+  "parentIntro": "You are under 18, so a parent or guardian must allow you to use PrepVruksha. We'll send a code to their phone.",
+  "parentNameLabel": "Parent or guardian's name",
+  "parentNameRequired": "Enter your parent's or guardian's name",
+  "parentPhoneLabel": "Parent's mobile number",
+  "parentSendCode": "Send code to parent",
+  "parentCodeSent": "We sent a code to {name}'s phone ending in {last4}. Ask them for the code and enter it here.",
+  "@parentCodeSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "last4": {
+        "type": "String"
+      }
+    }
+  },
+  "parentCodeLabel": "Code from your parent",
+  "parentConsentNote": "By sharing this code, your parent or guardian agrees to let you use PrepVruksha under the terms and privacy policy.",
+  "parentCodeWrong": "{count, plural, =1{Wrong code. 1 attempt left.} other{Wrong code. {count} attempts left.}}",
+  "@parentCodeWrong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "parentCodeLocked": "Too many wrong attempts. Send a new code.",
+  "parentCodeExpired": "The code has expired. Send a new code.",
+  "parentChangeNumber": "Change parent's number",
+  "parentBackToCode": "Back to entering the code",
+  "privacyTitle": "Privacy and consent",
+  "withdrawTerms": "Withdraw consent to the terms",
+  "withdrawParental": "Withdraw parental consent",
+  "withdrawConfirmTitle": "Withdraw consent?",
+  "withdrawConfirmBody": "You won't be able to use PrepVruksha until consent is given again. Your record of consent is kept.",
+  "withdrawConfirm": "Withdraw",
+  "errorAgeOutOfRange": "PrepVruksha is for students aged 13 to 30. Check your date of birth. If it is correct, we're sorry, you can't sign up yet.",
+  "errorDobAlreadySet": "Your date of birth is already saved and can't be changed here. Contact support if it is wrong.",
+  "errorInvalidInput": "Some details are not valid. Check them and try again.",
+  "errorTermsOutdated": "The terms have been updated. Please read and accept them again.",
+  "errorParentPhoneInvalid": "Enter a valid 10-digit Indian mobile number",
+  "errorParentPhoneIsYours": "Enter your parent's number, not your own.",
+  "errorResendTooSoon": "Please wait a minute before asking for another code.",
+  "errorDailyLimit": "Too many codes sent today. Try again tomorrow.",
+  "errorCodeNotSent": "We couldn't send the code. Try again in a minute."
 }

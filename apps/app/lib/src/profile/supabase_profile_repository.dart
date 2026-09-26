@@ -15,10 +15,20 @@ class SupabaseProfileRepository implements ProfileRepository {
         .from('profiles')
         .select(
           'id, full_name, phone, preferred_language, date_of_birth, '
-          'target_exam_year',
+          'target_exam_year, category',
         )
         .eq('id', userId)
         .maybeSingle();
     return row == null ? null : Profile.fromJson(row);
+  }
+
+  @override
+  Future<void> updatePreferredLanguage(String languageCode) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+    await _client
+        .from('profiles')
+        .update({'preferred_language': languageCode})
+        .eq('id', userId);
   }
 }

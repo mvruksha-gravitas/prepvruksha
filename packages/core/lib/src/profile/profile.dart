@@ -10,6 +10,7 @@ class Profile {
     this.preferredLanguage = 'en',
     this.dateOfBirth,
     this.targetExamYear,
+    this.category,
   });
 
   factory Profile.fromJson(Map<String, Object?> json) => Profile(
@@ -22,6 +23,7 @@ class Profile {
       _ => null,
     },
     targetExamYear: json['target_exam_year'] as int?,
+    category: json['category'] as String?,
   );
 
   final String id;
@@ -33,6 +35,10 @@ class Profile {
   final DateTime? dateOfBirth;
   final int? targetExamYear;
 
+  /// Central (MCC) category, optional until the college predictor.
+  final String? category;
+
   /// Whether the profile has the details collected at signup.
-  bool get isComplete => fullName != null && dateOfBirth != null;
+  bool get isComplete =>
+      fullName != null && dateOfBirth != null && targetExamYear != null;
 }
