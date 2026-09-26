@@ -40,3 +40,7 @@ supabase/.env
 .idea/
 .DS_Store
 Thumbs.db
+
+# Firebase CLI cache
+.firebase/
+firebase-debug.log

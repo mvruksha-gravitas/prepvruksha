@@ -1,0 +1,7 @@
+# Only pyproject.toml, uv.lock and src/ are needed. Never ship local config:
+# configuration comes only from Cloud Run's environment and Secret Manager.
+*
+!pyproject.toml
+!uv.lock
+!src/
+src/**/__pycache__

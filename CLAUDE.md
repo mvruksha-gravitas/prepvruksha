@@ -70,6 +70,7 @@ docs/
 10. **Minors' data:** parental consent is required at signup for users under 18 (DPDP Act). Students control how much detail parents see.
 11. **SEO pages are generated only from `published` questions.**
 12. **No behavioural tracking or targeted advertising for users under 18.** Any analytics added later must respect this: check minor status server-side, and treat unknown age as a minor.
+13. **No real student or personal data in `prepvruksha-dev`.** Its test phone numbers and codes are public, so anyone can sign in. Use only the test numbers and made-up data there; real data goes only to prod.
 
 ## Conventions
 

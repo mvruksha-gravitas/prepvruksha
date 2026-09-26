@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: modular-structure slice (branch `feat/modular-structure`)
+Last updated: dev deploy slice (branch `feat/dev-deploy`)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -46,7 +46,7 @@ Order of steps for a signed-in user: **profile → terms → parental consent (u
 - **App:** gate screen (loading / error + retry), profile form (DD/MM/YYYY date of birth with a "can't be changed later" note, exam year, optional category, language), terms screen + placeholder policy page, parent consent screen (form → waiting view with code entry, resend after the wait, change number, sign out), consent withdrawal on home (with confirmation). Language choice saved to `profiles.preferred_language` and restored once the profile is complete. `AppConfig` now requires `API_URL`.
 - **Tests:** 244 pgTAP (new `04_signup.test.sql`), API 39 pytest, core 26, app 30, console 1, ui_kit 1. Verified end to end against local Supabase + local API over HTTP (sign in → profile → terms → parent code → verify → withdraw; app clients get 403 on the RPC functions and on writing `date_of_birth`). The Flutter web build compiles; **the new screens have not been clicked through in Chrome yet** (see to-do).
 
-### Modular structure — branch `feat/modular-structure`
+### Modular structure — PRs #4 and #5, merged to `main`
 
 Feature-first layout per "Modularity" in `CLAUDE.md`. No behaviour change.
 
@@ -57,6 +57,23 @@ Feature-first layout per "Modularity" in `CLAUDE.md`. No behaviour change.
 - Tests: API 39, app 30 (unchanged counts).
 - **Consent config** (follow-up PR): parent-code settings (`OTP_HMAC_KEY`, `PARENT_OTP_SENDER`, `PARENT_OTP_TEST_CODES`) and the prod safety check moved to `consent/config.py`; `main.py` still refuses to start prod with the log sender or test parent numbers (tested by starting the app in a subprocess). API tests: 46.
 
+### Dev deploy — branch `feat/dev-deploy`
+
+Runbook: `infra/README.md`.
+
+- **API image:** `services/api/Dockerfile` (uv, non-root, no dev deps; `.dockerignore` keeps `.env` out). CI job "API image" builds it, checks `/health` and that it refuses to start with `APP_ENV=prod`.
+- **GCP (`prepvruksha-dev`, `asia-south1`), created by `infra/gcp-dev-setup.sh`:**
+  - Artifact Registry repo `prepvruksha`.
+  - Secrets `SUPABASE_SECRET_KEY` and `OTP_HMAC_KEY`, stored in Mumbai only.
+  - `api-runtime` account (reads those two secrets only).
+  - `github-deployer` account (Cloud Run developer, AR writer on the repo, act as `api-runtime`, Firebase Hosting admin).
+  - Workload Identity Federation for `deploy-dev.yml` on `main` only.
+  - Cloud Run service `prepvruksha-api` (public; the API checks tokens).
+- **`.github/workflows/deploy-dev.yml`:** after CI passes on `main`, deploys the API if `services/api/**` or `infra/cloudrun/**` changed, and the web app if `apps/app/**`, `packages/core|ui_kit/**`, `pubspec.*` or `firebase.json` changed. Also runs by hand.
+- **Web:** `firebase.json` (SPA rewrite, `no-cache` for html/js/json/wasm, basic security headers); the build config comes from GitHub repository variables.
+- **Settings fix:** `PARENT_OTP_TEST_CODES` from the environment now replaces the `.env` value instead of being merged with it (tested). API tests: 49.
+- **Rule 13 in `CLAUDE.md`:** no real student or personal data in `prepvruksha-dev`.
+
 ## 2. Environments
 
 | | Local | `prepvruksha-dev` |
@@ -65,9 +82,9 @@ Feature-first layout per "Modularity" in `CLAUDE.md`. No behaviour change.
 | Migrations | All 10 (via `supabase db reset`) | All 10 applied, up to `20260928000400` (checked 26 Sep with `supabase migration list --linked`) |
 | Seed | Applied on reset | Syllabus (100 chapters) and the two `2026-10-draft` policy versions |
 | Users / staff | Test numbers only | 0 users, 0 staff roles, 0 questions (as of 27 Sep) |
-| Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | **Test numbers not configured yet** (see to-do) |
-| `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Not deployed |
-| GCP / Firebase | — | Project `prepvruksha-dev`, `asia-south1`. Nothing deployed yet |
+| Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | **Test numbers not configured yet** (see to-do). The test numbers are public: **no real student or personal data on dev** |
+| `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Cloud Run `prepvruksha-api`: `https://prepvruksha-api-765197352192.asia-south1.run.app` (sample image until the first deploy from `main`) |
+| GCP / Firebase | — | Project `prepvruksha-dev`, `asia-south1`. Web app: `https://prepvruksha-dev.web.app` (from the first deploy). See `infra/README.md` |
 
 Privileges are identical locally and on dev, so local tests reflect dev.
 `supabase test db --linked` does not work (the CLI's temporary role cannot see pgTAP in `extensions`); verify dev with the Data API or `supabase db query --linked`.
@@ -79,7 +96,8 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **Click through the signup flow in Chrome** against local Supabase + local API: add `"API_URL": "http://127.0.0.1:8000"` to `config/local.json` (now required, or the app shows the config error screen), start the API, sign in with +91 99999 00001, complete the profile as a minor, parent number +91 99999 00006, code `123456`.
 - [ ] **Branch protection:** make "CI result" the only required status check on `main` (after this slice merges).
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
-- [ ] **Deploy `services/api` to Cloud Run (dev)** with secrets in Secret Manager (`SUPABASE_SECRET_KEY`, `OTP_HMAC_KEY`); set `API_URL` in `config/dev.json`. Until then the dev app can't get past signup (use `http://10.0.2.2:8000` for a local API from the emulator).
+- [ ] **Before the first dev deploy (you):** create the Supabase secret key `apidev`, add both secret values (commands in `infra/README.md`), and set the GitHub variable `DEV_SUPABASE_PUBLISHABLE_KEY`. Then merge this slice; check the Deploy dev run, `/health`, and sign in on `https://prepvruksha-dev.web.app`.
+- [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
 - [ ] **Test phone numbers on `prepvruksha-dev`:** add +91 99999 00001–00005, code `123456`, under Auth > Providers > Phone, with a placeholder SMS provider (see `supabase/README.md`). Then log in from the app with `config/dev.json`.
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
@@ -87,7 +105,6 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **Content review:**
   - Subject expert: chapter list, removed chapters, Botany/Zoology split (`supabase/seed/01_neet_syllabus.sql`).
   - Kannada translator: syllabus names (`name_kn`) and app strings (`apps/app/lib/l10n/app_kn.arb`, tracked in `apps/app/lib/l10n/README.md`), now including the signup and consent screens.
-- [ ] **Deploy dev web app to Firebase Hosting automatically on merge to `main`** (GitHub Actions; needs a Firebase service account in GitHub secrets and a hosting target/preview channel).
 - [ ] Log in through the running app on the Android emulator. Emulator + local Supabase needs `http://10.0.2.2:54321`.
 - [ ] Build the `prod` flavor once, and a release build (needs a signing key; never commit it).
 - [ ] Choose the DLT-registered SMS/WhatsApp OTP provider (launch blocker above; long-lead item in `ROADMAP.md`).
@@ -101,7 +118,8 @@ Upload files in the console → extracted, parsed, tagged, de-duplicated → rev
 - **Children's data:** no behavioural tracking or targeted advertising for users under 18 (rule 12 in `CLAUDE.md`). Any analytics added later (Firebase Analytics, Crashlytics custom keys, marketing SDKs) must respect this; check minor status server-side, and default to off when it is unknown.
 - **Blocking access:** today only the app router enforces "signup complete". When student data tables arrive (attempts, practice, bookmarks), their RLS policies and API endpoints must also require `private.signup_status(user) = 'complete'`, so a withdrawn consent blocks data access, not just screens.
 - **Policy versions:** a new terms version sends every student back to the terms step. Parental consent is not re-asked on a new parental version (any active parental consent counts); decide when the lawyer's text arrives whether a new parental version needs fresh consent.
-- **`.env` and environment merge dicts:** pydantic-settings merges `PARENT_OTP_TEST_CODES` from a local `.env` with the environment variable instead of replacing it. Cloud Run images must not contain a `.env` (exclude it in `.dockerignore`).
+- **`.env` in images:** the API image never contains a `.env` (`.dockerignore`); settings come only from the Cloud Run environment and Secret Manager.
+- **Deployer permissions:** `github-deployer` cannot change IAM. New public Cloud Run services, or new secrets, are added with the setup script (run by a person), not from GitHub Actions.
 - **Parent consent evidence:** `consents` row (parent name, phone, method, policy version, scope, timestamp, `request_id`) + the `parental_consent_requests` row (sent time, attempts, verified time). Raw codes are never stored or logged outside the dev `LogOtpSender`.
 - **Withdrawing parental consent** is possible from the student's own account for now. Parent accounts (`parent_links`) come later; the parent should be able to withdraw from their side too.
 - **Migration timestamps:** the latest migration is `20260928000400`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.

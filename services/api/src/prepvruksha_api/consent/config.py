@@ -3,11 +3,12 @@
 In Cloud Run the key comes from Secret Manager. Never commit a `.env`.
 """
 
+import json
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class ConsentSettings(BaseSettings):
@@ -20,7 +21,17 @@ class ConsentSettings(BaseSettings):
     parent_otp_sender: Literal["log"] = "log"
     # Test parent numbers with fixed codes; nothing is sent to them. JSON, e.g.
     # PARENT_OTP_TEST_CODES='{"919999900006": "123456"}'. Must be empty in prod.
-    parent_otp_test_codes: dict[str, str] = {}
+    # NoDecode keeps the raw JSON text while sources are combined, so an
+    # environment variable replaces the `.env` value instead of being merged
+    # into it; the validator decodes it afterwards.
+    parent_otp_test_codes: Annotated[dict[str, str], NoDecode] = {}
+
+    @field_validator("parent_otp_test_codes", mode="before")
+    @classmethod
+    def _decode_test_codes(cls, value: object) -> object:
+        if isinstance(value, str):
+            return json.loads(value) if value.strip() else {}
+        return value
 
     def check_production_safety(self, app_env: str) -> None:
         """Refuse to start prod with development-only OTP settings."""
