@@ -76,7 +76,6 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
   - Subject expert: chapter list, removed chapters, Botany/Zoology split (`supabase/seed/01_neet_syllabus.sql`).
   - Kannada translator: syllabus names (`name_kn`) and app strings (`apps/app/lib/l10n/app_kn.arb`, tracked in `apps/app/lib/l10n/README.md`), now including the signup and consent screens.
 - [ ] **Deploy dev web app to Firebase Hosting automatically on merge to `main`** (GitHub Actions; needs a Firebase service account in GitHub secrets and a hosting target/preview channel).
-- [ ] **Move the language button:** in debug builds the debug banner partly hides it (top-right app bar action).
 - [ ] Log in through the running app on the Android emulator. Emulator + local Supabase needs `http://10.0.2.2:54321`.
 - [ ] Build the `prod` flavor once, and a release build (needs a signing key; never commit it).
 - [ ] Choose the DLT-registered SMS/WhatsApp OTP provider (launch blocker above; long-lead item in `ROADMAP.md`).
