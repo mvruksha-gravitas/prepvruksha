@@ -40,7 +40,8 @@ Don't set up every service in advance. Add each one when the slice that needs it
 - [ ] Google Search Console and Bing Webmaster Tools; submit the sitemap index.
 - [ ] Backups: Supabase point-in-time recovery (or daily dumps to Cloud Storage).
 - [ ] Monitoring: Crashlytics for apps, Cloud Logging alerts for API errors, uptime check on the API.
-- [ ] Privacy policy and terms (DPDP-compliant consent flow).
+- [ ] Privacy policy and terms: final text from a lawyer (the DPDP consent flow is built; it uses placeholder text versioned in `policy_versions`).
+- [ ] DLT-registered SMS provider for sign-in OTP and parent consent codes.
 
 ## 3. Phase 1 — Launch (October 2026 → January 2027)
 
@@ -58,7 +59,7 @@ Don't set up every service in advance. Add each one when the slice that needs it
 
 Publish the first reviewed question pages as early as week 6 — search ranking takes months.
 
-**No real user signs up until the signup and parental-consent flow is complete** (the slice after Foundations). Until then only the Supabase test phone numbers are used.
+**No real user signs up until the signup and parental-consent flow is complete** (built in the slice after Foundations), **real DLT-registered SMS sending is live, and the final legal text is published** (launch blockers in `STATUS.md`). Until then only the test phone numbers are used.
 
 ## 4. Phase 2 — Retention (February → May 2027)
 

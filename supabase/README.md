@@ -41,6 +41,14 @@ On `prepvruksha-dev`, add the same numbers under
 dashboard also needs an SMS provider enabled (placeholder values are fine for
 test numbers).
 
+### Test parent numbers (parental consent)
+
+Parent consent codes are sent by `services/api`, not Supabase Auth. Numbers
+listed in the API's `PARENT_OTP_TEST_CODES` get a fixed code and no SMS
+(`.env.example` sets +91 99999 00006 and 00007 with `123456`). Codes for other
+numbers are written to the API log in local/dev (`LogOtpSender`) until the
+DLT-registered provider is set up.
+
 ## Remote project (`prepvruksha-dev`)
 
 ```
@@ -78,3 +86,10 @@ select id, 'super_admin' from auth.users where phone = '91XXXXXXXXXX';
 - Questions with `exam_reserved = true` are hidden from the public even when
   published. The SEO build reads only `public.seo_questions`.
 - RLS helper functions live in the `private` schema, which the Data API does not expose.
+- Signup functions (`public.get_signup_state`, `complete_profile`, `accept_terms`,
+  `start_parental_consent`, `verify_parental_consent`, `withdraw_consent`,
+  `correct_date_of_birth`) are executable only by `service_role`; `services/api`
+  calls them after verifying the user's JWT. They raise `P0001` with a
+  machine-readable message such as `dob_already_set`.
+- `profiles.date_of_birth` is set once; re-setting it raises `dob_already_set`
+  even for the service role, except through `correct_date_of_birth`.
