@@ -1,6 +1,6 @@
 # Roadmap — PrepVruksha
 
-Version 0.2 · 26 September 2026 (progress marked; details in `STATUS.md`)
+Version 0.3 · 26 September 2026 (progress marked; subject-teacher advice added: sub-topics, rights status, similarity before launch, question generator; details in `STATUS.md`)
 
 Target: CBT mock engine and weekly live mocks running by **January 2027**, ahead of the first
 CBT-mode NEET (expected around May 2027). Dates below assume one developer plus
@@ -12,8 +12,8 @@ part-time content reviewers.
 2. **Long-lead items** (start this week; they take time outside your control):
    - Product name and domain: PrepVruksha, prepvruksha.com ✔ (also register the .in and the "vriksha" spelling)
    - Choose a DLT-registered SMS/WhatsApp OTP provider and start DLT sender and template registration.
-   - Contract 1–2 subject-expert reviewers (Physics, Chemistry, Biology) and a Kannada translator.
-   - Confirm content rights for the existing question files.
+   - Contract 1–2 subject-expert reviewers (Physics, Chemistry, Biology) and a Kannada translator. **First expert task: review the draft NEET sub-topic tree** (needed before pipeline slice 2); later, confirming answers of AI-generated questions.
+   - Confirm content rights for the existing question files; each file gets a rights status at upload (`owned_licensed`, `official_pyq`, `reference_only`).
    - Google Play developer account (Apple developer account can wait until after launch).
 3. **Minimum infrastructure** (one day — see section 2). Only dev at first; prod when the first slice works.
 4. **Build in vertical slices** with Claude Code (section 3).
@@ -30,7 +30,7 @@ Don't set up every service in advance. Add each one when the slice that needs it
 - [x] Google Cloud project `prepvruksha-dev` (this is also the Firebase project): Cloud Run, Artifact Registry, Secret Manager enabled (`infra/gcp-dev-setup.sh`); region `asia-south1`. Cloud Scheduler is added with the first scheduled job (nightly SEO build).
 - [x] Firebase: project added; Hosting (`prepvruksha-dev.web.app`) and Cloud Messaging only.
 - [ ] **Budget alerts** on GCP and a spend cap on Supabase.
-- [ ] API accounts: Anthropic (Claude API), Mathpix. Keys into Secret Manager and a local `.env`.
+- [ ] API account: Anthropic (Claude API). Key into Secret Manager and a local `.env`. (Mathpix dropped after slice 0.)
 - [x] Flutter: create `apps/app`, `apps/console`, `packages/core`, `packages/ui_kit` (pub workspaces).
 - [x] CI/CD: per-area CI with one required check; Deploy dev after CI passes on `main` (database, then API on Cloud Run, then web app on Firebase Hosting); keyless sign-in to GCP.
 
@@ -42,23 +42,32 @@ Don't set up every service in advance. Add each one when the slice that needs it
 - [ ] Backups: Supabase point-in-time recovery (or daily dumps to Cloud Storage).
 - [ ] Monitoring: Crashlytics for apps, Cloud Logging alerts for API errors, uptime check on the API.
 - [ ] Privacy policy and terms: final text from a lawyer (the DPDP consent flow is built; it uses placeholder text versioned in `policy_versions`).
-- [ ] DLT-registered SMS provider for sign-in OTP and parent consent codes.
+- [ ] Login provider decision (Firebase Phone Auth vs Supabase Auth + a DLT-registered Indian OTP provider; notes in `STATUS.md`), then real SMS for sign-in OTP and parent consent codes.
 
 ## 3. Phase 1 — Launch (October 2026 → January 2027)
 
+Revised 26 Sep 2026 after the subject-teacher advice. Week 2 starts 28 Sep 2026.
+
 | Weeks | Slice | Done when |
 |---|---|---|
-| 1 ✔ | **Foundations** | Repo, CI (lint + tests), local Supabase, first migrations (profiles, syllabus, questions, options), seed subjects/chapters/topics, phone OTP login working in the app |
-| 2–4 | **Import pipeline + review console** | Upload files in the console → extracted, parsed, tagged, de-duplicated → review screen with source page beside parsed question → approve publishes. Test on 10 of the messiest files first and measure accuracy |
-| 3–12 (ongoing) | **Content** | Reviewers publishing continuously; target a few thousand reviewed questions by launch, covering every chapter |
-| 5–8 | **CBT exam engine** | NTA-style interface, exam-day sequence, pattern from `exam_patterns`, local saving + batched sync, resume after disconnect, server-side scoring. Load-tested at 5,000 simulated students |
-| 8–9 | **Results v1 + error notebook** | Score, subject breakdown, platform rank/percentile, time analysis, chapter heatmap; wrong answers collected with mistake reasons |
-| 9–10 | **Practice + search** | Chapter tests, PYQ papers, custom tests; keyword search over published questions |
-| 10–11 | **Public SEO pages** | Static question pages, hub pages, sitemaps deployed nightly; Search Console live |
-| 11–12 | **Live mocks + pilot** | Scheduled all-India mock with scale-up routine; 2–3 pilot PU colleges onboarded manually; bug-fix buffer |
-| Jan 2027 | **Launch** | Weekly live mocks begin; Android app on Play Store; web app live |
+| 1 ✔ | **Foundations** | Repo, CI (lint + tests), local Supabase, first migrations (profiles, syllabus, questions, options), seed subjects/chapters, phone OTP login working in the app |
+| 2 | **Pipeline 1: staff console + uploads** | Secret scanning in CI; staff upload a PDF/Word file with a rights status and note; listed as `queued` with an import job |
+| 3 | **Sub-topics + difficulty** | Migration (DATA_MODEL section 10); draft NEET sub-topic tree seeded as unreviewed; subject expert reviewing in parallel |
+| 3–4 | **Pipeline 2: worker** | Files parsed into `import_items` on Cloud Run, incl. scanned pages and figures; AI suggests sub-topic and difficulty |
+| 5 | **Pipeline 3: review + publishing** | Source page beside the parsed question; reviewer confirms sub-topic, difficulty and answer; approve publishes; `reference_only` items cannot be published |
+| 6–7 | **Pipeline 4: similarity (before launch)** | Embeddings for the bank and the reference-only corpus; every new question compared and flagged above the threshold; harder answer-key layouts |
+| 7–8 | **Question generator** | Questions per sub-topic, difficulty and format into review; independent second solve; expert answer confirmation; similarity check |
+| 3–16 (ongoing) | **Content** | Reviewers publishing continuously from week 5; target a few thousand reviewed questions by launch, covering every chapter |
+| 9–12 | **CBT exam engine** | NTA-style interface, exam-day sequence, pattern from `exam_patterns`, local saving + batched sync, resume after disconnect, server-side scoring. Load-tested at 5,000 simulated students |
+| 12–13 | **Results v1 + error notebook** | Score, subject breakdown, platform rank/percentile, time analysis, chapter/sub-topic heatmap; wrong answers collected with mistake reasons |
+| 13–14 | **Practice + search** | Chapter, sub-topic and difficulty-based tests, PYQ papers, custom tests; keyword search over published questions |
+| 14–15 | **Public SEO pages** | Static question pages, hub pages, sitemaps deployed nightly; Search Console live |
+| 15–16 | **Live mocks + pilot** | Scheduled all-India mock with scale-up routine; 2–3 pilot PU colleges onboarded manually; bug-fix buffer |
+| Late Jan 2027 (week 17) | **Launch** | Weekly live mocks begin; Android app on Play Store; web app live |
 
-Done by 26 Sep 2026 (see `STATUS.md`): Foundations; signup and parental consent (DPDP); feature-first code layout with boundary checks; dev deploy pipeline; target exam years from `exam_cycles` data. Next: import pipeline + review console.
+**Timeline impact:** about **+4 weeks** of build (sub-topics ~1 week, similarity moved before launch ~1.5 weeks, generator ~2 weeks, minus overlap). The CBT engine moves from weeks 5–8 to 9–12 (ready around 20 Dec instead of mid-Nov), and launch from early January to **late January 2027**, leaving about 14 weekly mocks before a May 2027 exam instead of about 18. If early January must hold, the lever is to build the generator after the CBT engine (weeks 13–14), which brings the engine back to weeks 7–10 and launch to about week 15.
+
+Done by 26 Sep 2026 (see `STATUS.md`): Foundations; signup and parental consent (DPDP); feature-first code layout with boundary checks; dev deploy pipeline; target exam years from `exam_cycles` data. Next: pipeline slice 1 (staff console and uploads, with rights status), starting with secret scanning.
 
 Publish the first reviewed question pages as early as week 6 — search ranking takes months.
 
@@ -108,5 +117,7 @@ batch result forecast, white-label, leagues and duels, marks-to-seat and cost-to
 | NTA changes the pattern or interface | Pattern in configuration; interface isolated in one module; update on NTA demo release |
 | Live mock overload | Paper delivered once, batched sync, pre-scaling, load test before first live mock |
 | AI parsing errors | Confidence scores, flags, human review of every item |
-| Content rights disputes | Record source and rights note per file; remove on request |
+| Wrong answers on AI-generated questions | Independent second AI solve must agree; subject expert confirms every answer; attempt data flags questions students get "wrong" unusually often |
+| Sub-topic tree not reviewed in time | AI-drafted tree marked unreviewed; tagging can start on it; expert review runs in parallel with slice 2 |
+| Content rights disputes | Rights status and note per file at upload; `reference_only` never published; similarity check against the reference corpus; remove on request |
 | Solo developer bandwidth | Strict P0 scope for launch; vertical slices; defer everything P1+ |

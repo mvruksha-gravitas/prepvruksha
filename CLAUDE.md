@@ -6,7 +6,7 @@ Read it fully before making changes. Detailed specs live in `docs/`.
 ## What we are building
 
 An exam-preparation platform for students in India, starting with NEET-UG and later expanding to JEE, KCET and government exams. Launch focus: NEET-UG (Karnataka-first, Kannada + English),
-built on a large, human-verified question bank. Core promise: realistic **computer-based
+built on a large, human-verified question bank tagged by sub-topic (subject → chapter → topic → sub-topic) and difficulty. Core promise: realistic **computer-based
 (CBT) mock exams** — NEET moves from pen-and-paper to CBT from the 2027 exam — plus deep
 analytics that show students exactly why they lose marks and what to study next.
 
@@ -59,7 +59,7 @@ docs/
 
 ## Non-negotiable rules
 
-1. **Answer keys and scoring never come from AI.** They come only from verified, human-reviewed data.
+1. **Answer keys and scoring never come from AI alone.** Scoring never uses AI. Imported questions: the answer is copied from the source and verified by a reviewer; the AI never fills in a missing one. AI-generated questions (`source_type = 'ai_generated'`): the AI may propose an answer, but a second, independent AI solve must agree (disagreements are flagged), and a subject expert must explicitly confirm the answer before the question can be published.
 2. **Nothing AI-generated is published without human review.** Questions, explanations, translations and variants all go through `status = 'review'` → a reviewer → `'published'`.
 3. **Never send personal data to AI services.** Send only question content and anonymous answer data. No names, phone numbers or emails.
 4. **Row Level Security on every table** that holds user or institution data. Test policies for each role.
@@ -72,6 +72,8 @@ docs/
 11. **SEO pages are generated only from `published` questions.**
 12. **No behavioural tracking or targeted advertising for users under 18.** Any analytics added later must respect this: check minor status server-side, and treat unknown age as a minor.
 13. **No real student or personal data in `prepvruksha-dev`.** Its test phone numbers and codes are public, so anyone can sign in. Use only the test numbers and made-up data there; real data goes only to prod.
+14. **Every source file has a rights status** (`owned_licensed`, `official_pyq`, `reference_only`), chosen at upload with the rights note. **`reference_only` content is never published** (enforced in the database); it is used only for similarity checks and as inspiration for original questions.
+15. **Similarity check before publishing** (from pipeline slice 4, before launch). Every new question, imported or generated, is compared by meaning against the bank and the reference-only corpus; matches above the threshold are flagged for the reviewer.
 
 ## Conventions
 

@@ -1,6 +1,6 @@
 # Product Requirements — PrepVruksha
 
-Version 0.1 · 25 September 2026 · Owner: mVruksha Softwares
+Version 0.2 · 26 September 2026 (subject-teacher advice: sub-topics, difficulty, rights status, similarity checks, question generator) · Owner: mVruksha Softwares
 
 ## 1. Summary
 
@@ -30,7 +30,7 @@ same data through their own views.
 
 1. Students own their account; their profile follows them across institutions.
 2. Free core (question dumps, previous-year papers, some mocks, public question pages, college predictor). Premium for depth.
-3. Every published answer is human-verified. AI assists but never decides answers or scores.
+3. Every published answer is human-verified. AI assists but never decides answers or scores on its own (see section 6 for AI-generated questions).
 4. Kannada and English from the start.
 5. Works on cheap Android phones and slow networks; full mocks encouraged on desktop.
 
@@ -43,12 +43,14 @@ Priority: **P0** = needed for the January 2027 launch · **P1** = soon after lau
 | Feature | Priority |
 |---|---|
 | Questions with options, answer, explanation, images | P0 |
-| Tags: subject, chapter, topic, concept, question format, source (PYQ year / original) | P0 |
+| Syllabus tree: subject → chapter → topic → sub-topic (NEET sub-topics drafted from the official syllabus and NCERT, reviewed by a subject expert) | P0 |
+| Tags: sub-topic (chapter and topic follow from it), question format, source (PYQ year / original / imported / AI-generated) | P0 |
+| Difficulty: easy / moderate / difficult; AI suggests, reviewer confirms | P0 |
 | Question formats: single-correct MCQ, assertion–reason, match-the-following, multi-statement | P0 |
 | Status workflow: draft → review → published → retired | P0 |
 | Link each question to NCERT lines | P1 |
 | Flag questions on topics removed by NCERT rationalisation | P1 |
-| Difficulty calibrated from real attempt data (IRT) | P1 |
+| Difficulty recalibrated from real attempt data (IRT; updates the easy / moderate / difficult level) | P1 |
 | Trap type on each wrong option | P1 |
 | Kannada versions linked to the English original | P1 |
 | Numerical-answer question type (in case NTA adds it) | P2 |
@@ -58,14 +60,27 @@ Priority: **P0** = needed for the January 2027 launch · **P1** = soon after lau
 | Feature | Priority |
 |---|---|
 | Bulk upload of PDF, Word and ZIP files with per-file status | P0 |
-| Extraction: Pandoc (Word), PyMuPDF (text PDF), Mathpix (scanned PDF, formulas) | P0 |
+| Rights status per file, chosen at upload with a rights note: `owned_licensed`, `official_pyq` or `reference_only`. Reference-only content is never published; it feeds similarity checks and inspiration for original questions | P0 |
+| Extraction: Pandoc (Word), PyMuPDF (text PDF); scanned pages read by Claude as page images (no Mathpix) | P0 |
 | AI parsing into structured questions with a confidence score | P0 |
 | Matching answer keys printed separately from questions | P0 |
-| Automatic tagging | P0 |
-| Near-duplicate detection (embeddings) | P0 |
+| Automatic tagging (sub-topic and difficulty suggested; reviewer confirms) | P0 |
+| Similarity check by meaning (embeddings) against the bank and the reference-only corpus; flagged above a threshold. Before launch | P0 |
 | Review screen: original page beside parsed question; approve / edit / reject | P0 |
 | Excel/CSV and marked-up Word templates for new content | P1 |
 | AI-drafted explanations and Kannada translations (always reviewed) | P1 |
+
+### 5.2a Question generator
+
+Generates original questions to fill sub-topics the bank covers thinly. Built after the review screen (pipeline slice 3) and the similarity check (slice 4).
+
+| Feature | Priority |
+|---|---|
+| Generate questions per sub-topic and difficulty from chapter content, in all NEET formats (single MCQ, assertion–reason, match-the-following, multi-statement) | P0 |
+| Output goes to the review queue (`status = 'review'`, `source_type = 'ai_generated'`); never published directly | P0 |
+| Answer checks: the generator proposes an answer; a second, independent AI solve (without seeing it) must agree, otherwise the question is flagged; the subject expert must explicitly confirm the answer | P0 |
+| Every generated question goes through the similarity check (bank + reference-only corpus); too-close questions are flagged | P0 |
+| Coverage view: questions per sub-topic × difficulty, to choose what to generate next | P1 |
 
 ### 5.3 CBT exam engine
 
@@ -170,9 +185,10 @@ Streaks (P1), WhatsApp daily quiz bot (P1), weekly leagues (P2), peer duels (P2)
 
 ## 6. AI use
 
-- **Allowed:** import parsing, tagging, NCERT linking, duplicate detection, draft explanations and translations, question variants, grounded tutoring, summaries, parent reports, test assembly from the verified bank.
-- **Statistics, not AI:** difficulty (IRT), rank / percentile / normalisation, college predictor, spaced repetition, priority engine, copying detection.
-- **Never AI:** answer keys, scoring, publishing without review, cheating verdicts, emotional counselling (point to people and helplines instead).
+- **Allowed:** import parsing, tagging (sub-topic, suggested difficulty), question generation (into review), NCERT linking, duplicate detection, draft explanations and translations, question variants, grounded tutoring, summaries, parent reports, test assembly from the verified bank.
+- **Statistics, not AI:** difficulty recalibration (IRT), rank / percentile / normalisation, college predictor, spaced repetition, priority engine, copying detection.
+- **Never AI alone:** answer keys. Imported answers come from the source; for AI-generated questions, two independent AI solves must agree and a subject expert confirms the answer.
+- **Never AI:** scoring, publishing without review, cheating verdicts, emotional counselling (point to people and helplines instead).
 - **Cost control:** generate once and store; batch processing for bulk jobs; smaller models for simple tasks; AI tutor limits on the free plan.
 
 ## 7. Non-functional requirements
@@ -210,7 +226,8 @@ Streaks (P1), WhatsApp daily quiz bot (P1), weekly leagues (P2), peer duels (P2)
 | Product name, brand, domain | **Decided:** PrepVruksha, prepvruksha.com |
 | KCET and PU board coverage at launch | NEET only; data model supports other exams |
 | Mobile app at launch vs web first | Android app + web app together (same Flutter code); iOS after launch |
-| Phone OTP provider (DLT-registered) | To choose; start DLT registration early |
+| Login and phone OTP provider (DLT-registered) | Undecided: Firebase Phone Auth vs Supabase Auth + an Indian OTP provider (comparison notes in `STATUS.md`); research before launch |
 | Subject-expert reviewers and Kannada translators | To hire / contract |
-| Content rights for existing question files | Verify before import |
+| Content rights for existing question files | Recorded per file as a rights status at upload; `reference_only` when unsure |
+| Similarity threshold (flag level) | Set on real data in pipeline slice 4 |
 | Pricing figures, AI and OCR budget | To set |
