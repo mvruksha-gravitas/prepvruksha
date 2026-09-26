@@ -146,7 +146,7 @@ jobs:
       - name: Starts and answers /health
         run: |
           docker run -d --name api -p 8080:8080 -e APP_ENV=dev prepvruksha-api:ci
-          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 localhost:8080/health
+          curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 1 localhost:8080/health
       - name: Refuses to start in prod with development settings
         run: |
           if docker run --rm -e APP_ENV=prod prepvruksha-api:ci; then
