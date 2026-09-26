@@ -107,6 +107,13 @@ docs/
 
 Prerequisites: Flutter 3.47 (stable), Supabase CLI, Docker Desktop, uv. Run from the repo root unless noted.
 
+**Secret scanning** (gitleaks 8.30.1; CI scans the whole history on every PR and push)
+```
+git config core.hooksPath .githooks   # once per clone: blocks commits with secrets
+gitleaks git --redact .               # scan history by hand
+```
+Install gitleaks first (Windows: `scoop install gitleaks`). Never bypass the hook with `--no-verify`.
+
 **Database (local Supabase)** — see `supabase/README.md`
 ```
 supabase start                      # local stack; prints URL + publishable key
