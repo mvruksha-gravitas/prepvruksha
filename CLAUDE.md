@@ -98,6 +98,8 @@ docs/
 - For any non-trivial feature, propose a plan first and wait for approval.
 - When a requirement in `docs/` is unclear or conflicts with code, ask rather than guess.
 - Update the relevant doc when a decision changes.
+- **Polish list:** minor, non-urgent improvements go to the "Polish list" in `docs/STATUS.md` instead of being done on the side; they are done in batches when asked. Security, privacy and correctness items are never polish: they go into the current work.
+- **Merging:** Claude may merge its own docs-only PRs (`gh pr merge <number> --merge --delete-branch`) after CI passes, then update `main` (`git checkout main && git pull`). Code PRs are merged only when the owner says so.
 
 ## Commands
 

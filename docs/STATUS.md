@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026, slice 0 (import prototype) done on branch `feat/pipeline-prototype`; slice 1 plan proposed
+Last updated: 26 Sep 2026, end of conversation: slice 0 merged (PR #14); slice 1 plan approved, not started
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -120,26 +120,41 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 
 ## 3. Open to-do
 
-- [ ] **Before prod holds data** (optional until then): a warning in Deploy dev when the dry-run lists a seed file as "(hash update)", and a CLAUDE.md convention that data changes for existing projects go in migrations.
-- [ ] **Repository visibility:** the GitHub repository is **public**, while `ROADMAP.md` planned a private one. No secrets are in it (only project IDs, URLs and the public test numbers), but decide whether it should be private.
-- [ ] Local signup click-through (optional now that dev is verified): needs `"API_URL": "http://127.0.0.1:8000"` in `config/local.json` and the local API running.
-- [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
-- [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
-- [ ] **Remove the unused Supabase token** after the database step works without it: delete the `github-deploy-dev` token (supabase.com/dashboard/account/tokens) and the secret (`gh secret delete SUPABASE_ACCESS_TOKEN --env dev --repo mvruksha-gravitas/prepvruksha`).
-- [ ] **Keep exam dates on record:** NEET-UG 2027, 2028 and 2029 are tentative (first Sunday of May, `date_confirmed = false`). When NTA announces a date, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2030 sitting before 6 May 2029, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL.
-- [ ] **GitHub Actions on Node 20** (deprecated): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
+- [ ] **Remove the unused Supabase token** (security: a live credential nothing uses): delete the `github-deploy-dev` token (supabase.com/dashboard/account/tokens) and the secret (`gh secret delete SUPABASE_ACCESS_TOKEN --env dev --repo mvruksha-gravitas/prepvruksha`).
+- [ ] **Budget alerts** on GCP `prepvruksha-dev` and a spend cap on Supabase (Day 1 item in `ROADMAP.md`, not done yet).
+- [ ] **Anthropic key in Secret Manager** (`prepvruksha-dev`, Mumbai) before slice 2; today it is only in the local `services/pipeline/.env` (key rotated 26 Sep after it nearly leaked; see slice 1, secret scanning).
+- [ ] **Real NEET files test (you + me):** your real NEET files with the rights confirmed for each, and a hand-checked answer sheet. Then compare **Opus 5 at `medium` against `high`**; if `medium` has 0 invented answers and no drop in accuracy, make `medium` the default (`PARSE_EFFORT`).
+- [ ] **Keep exam dates on record:** NEET-UG 2027, 2028 and 2029 are tentative (first Sunday of May, `date_confirmed = false`). When NTA announces a date, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2030 sitting before 6 May 2029, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL (`supabase/README.md`).
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
 - [ ] **Account deletion and data erasure requests** (DPDP), a later slice: delete/anonymise user data on request, keep what the law requires (consent records), and decide how long withdrawn accounts are kept.
 - [ ] **Content review:**
   - Subject expert: chapter list, removed chapters, Botany/Zoology split (`supabase/seed/01_neet_syllabus.sql`).
   - Kannada translator: syllabus names (`name_kn`) and app strings (`apps/app/lib/l10n/app_kn.arb`, tracked in `apps/app/lib/l10n/README.md`), now including the signup and consent screens.
-- [ ] Log in through the running app on the Android emulator. Emulator + local Supabase needs `http://10.0.2.2:54321`.
-- [ ] Build the `prod` flavor once, and a release build (needs a signing key; never commit it).
 - [ ] Choose the DLT-registered SMS/WhatsApp OTP provider (launch blocker above; long-lead item in `ROADMAP.md`).
-- [ ] **Real NEET files test (you + me):** your real NEET files with the rights confirmed for each, and a hand-checked answer sheet. Then compare **Opus 5 at `medium` against `high`**; if `medium` has 0 invented answers and no drop in accuracy, make `medium` the default (`PARSE_EFFORT`).
-- [ ] **Anthropic key in Secret Manager** (`prepvruksha-dev`, Mumbai) before slice 2; today it is only in the local `services/pipeline/.env`.
-- [ ] **Budget alerts** on GCP `prepvruksha-dev` and a spend cap on Supabase (Day 1 item in `ROADMAP.md`, not done yet).
+
+### Open decisions before launch
+
+- [ ] **Login provider: Firebase Auth vs Supabase Auth.** Not decided; no written comparison exists yet in the repo. Today the apps use Supabase Auth (phone OTP); its JWT drives RLS and the API, and users live in Postgres (`auth.users`). Points to compare (facts to be checked when the comparison is written):
+  - DLT-registered SMS for India: which provider each supports, and cost per OTP.
+  - Staff sign-in with Google and 2-step verification (launch blocker above).
+  - Data location: CLAUDE.md rule 9 (all data in Indian regions); where each stores user records.
+  - Portability: rule 8 (core data in Postgres); Firebase users would live outside Postgres.
+  - Integration and migration effort: Supabase accepts third-party auth JWTs, so RLS could stay; signup, the API's JWT check and the app's auth feature would change.
+- [ ] **Repository visibility:** the GitHub repository is **public**, while `ROADMAP.md` planned a private one. No secrets are in it (only project IDs, URLs and the public test numbers), but decide whether it should be private.
+
+### Polish list
+
+Minor, non-urgent improvements. Done in batches when asked, not on the side of other work (see "How to work" in `CLAUDE.md`). Security, privacy and correctness items never go here.
+
+- [ ] **GitHub Actions on Node 20** (deprecated warnings): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
+- [ ] **import-linter for `services/seo`** once it has feature folders (CI skips the step until then; the API and pipeline have contracts).
+- [ ] **Seed "hash update" warning** in Deploy dev (a changed seed file is not re-run on existing projects) and a CLAUDE.md convention that data changes for existing projects go in migrations. Do before prod holds data.
+- [ ] **Vector-drawn figures** in PDFs (drawings, not embedded images) are not cut out as assets yet; the page image still carries them.
+- [ ] Local signup click-through against the local API (dev is verified): needs `"API_URL": "http://127.0.0.1:8000"` in `config/local.json`.
+- [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
+- [ ] Log in through the running app on the Android emulator (emulator + local Supabase needs `http://10.0.2.2:54321`).
+- [ ] Build the `prod` flavor once, and a release build (needs a signing key; never commit it).
 
 ## 4. Current slice: import pipeline + review console (Weeks 2–4 in `ROADMAP.md`)
 
@@ -161,12 +176,35 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
      - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
      - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
-1. **Staff console and uploads** (no AI): `source_files` / `import_jobs` / `import_items`, private Storage bucket, `content` API feature, console sign-in with a staff guard, upload with a rights note, file list.
+1. **Staff console and uploads** (no AI). **Plan approved 26 Sep; next to build.** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
+   - **Secret scanning first** (security, added after the Anthropic key nearly leaked on 26 Sep): gitleaks in CI on every PR and push, and a simple local pre-commit check if it stays simple.
+   - **Database** (one migration):
+     - `source_files` (name, type `pdf`/`docx`, size, SHA-256, required rights note, uploaded by, status `awaiting_upload` → `queued` → … `done`/`failed`, error); **identical files rejected** (unique hash).
+     - `import_jobs` (queue for the slice 2 worker) and `import_items` (as in `DATA_MODEL.md`); FK `questions.source_file_id`.
+     - Private Storage bucket `source-files` (Mumbai): **PDF and Word only, 100 MB limit** (scanned books can be large). No client storage policies; files arrive only through signed upload URLs from the API.
+     - Staff read; all writes through service-role functions that take the acting staff member and check the role (like `correct_date_of_birth`). **Upload: content admins and super admins; reviewers only review.** Privileges matrix and pgTAP tests.
+   - **API** (`content` feature): `GET /staff/me` (roles; the console's access check); `POST /content/files` (checks type, size, rights note; records the file; returns a short-lived signed upload URL); `POST /content/files/{id}/complete` (confirms the object in Storage with the expected size, marks it `queued`, creates the import job); `GET /content/files` (list by status). Staff endpoints go through one dependency where a production rule (e.g. Google sign-in with 2-step verification) can be enforced later.
+   - **Console** (`apps/console`, Flutter web, feature folders + boundary checks): `auth` (phone OTP behind a list of sign-in methods, so Google can be added without changing screens); staff guard ("no access" for non-staff); `content` (file list with status; upload dialog: rights note, SHA-256 in the browser, direct upload to Storage with progress, then confirm). **English only, strings in ARB files** so Kannada can be added later.
+   - **Hosting:** new Firebase Hosting site `prepvruksha-dev-console` (create with `firebase hosting:sites:create prepvruksha-dev-console --project=prepvruksha-dev`), deployed by Deploy dev when `apps/console/**` changes; its origin added to the API's CORS setting.
+   - **Dev staff:** after first sign-in, by SQL: +91 99999 00002 content admin, 00003 reviewer, 00004 super admin.
+   - **Tests:** pgTAP (tables, RLS, functions, bucket), API pytest with a fake Storage, console widget tests with fakes, `core` client tests; an end-to-end upload on dev.
 2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`, including scanned PDFs (Claude reads the page images) and figures saved to Storage as question assets.
 3. **Review screen and publishing**: source page beside the parsed question, edit, approve (one transaction: question + options + `audit_log`), reject.
 4. **Duplicates and harder answer-key layouts** (no Mathpix). Embeddings: an open model inside the worker (data stays in India), comparison brought to this slice.
 
 Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made staff by SQL); the console's auth is built so a stronger method can be added for production staff (see launch blockers).
+
+### Build order
+
+1. Import pipeline slices 1–3 (staff console and uploads → worker → review and publishing).
+2. CBT exam engine.
+3. Results and error notebook.
+4. Practice and search.
+5. Public SEO pages.
+6. Live mocks (and the pilot).
+7. Launch.
+
+Pipeline slice 4 (duplicates, harder answer-key layouts) comes **after launch**.
 
 ## 5. Carry-over notes
 
