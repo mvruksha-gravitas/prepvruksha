@@ -35,8 +35,13 @@ API and web both deploy when the workflow file changes. Run it by hand from
 Actions > Deploy dev > Run workflow: `both` (API + web), `all` (database, API,
 web), `database`, `api` or `web`.
 
-The seed runs on every database push. Seed files must stay safe to re-run
-(`on conflict`), and must not overwrite what content admins edit.
+**Seed files run once per project.** `db push --include-seed` runs a seed
+file the first time it reaches a project. If the file changes later, the CLI
+only records its new hash ("hash update") and does not run it again. So a
+change to an existing seed file reaches only fresh databases (local resets,
+CI, a new prod project), not dev. Data that must reach dev too goes in by
+hand (SQL, as for exam dates) or in a migration. Seed files must still be
+safe to re-run (`on conflict`) and must not overwrite what content admins edit.
 
 | Resource | Value |
 |---|---|

@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026, after PR #11 (dev deploy pipeline with a database step; exam cycles)
+Last updated: 26 Sep 2026, after the first Deploy dev database run (seed files run once per project)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -84,7 +84,8 @@ Runbook: `infra/README.md`.
 - The order is database, then API, then web. A failed or cancelled step stops the steps after it.
 - The manual run can target `all`, `database`, `both`, `api` or `web`.
 - The only credential is `SUPABASE_DB_PASSWORD`, a secret of the GitHub `dev` environment (limited to `main`). The job connects with `supabase db push --db-url` through the session pooler. No Supabase access token is used, because `supabase link` would need a token that can read the project's API keys (first run failed with `api_gateway_keys_read`).
-- Verified: after the #10 and #11 merges, the database step was skipped (nothing under `supabase/**` changed) and the API and web still deployed. **The first real database run (manual, target `database`) is still to do** (see to-do).
+- Verified: after the #10 and #11 merges, the database step was skipped (nothing under `supabase/**` changed) and the API and web still deployed. The first real database run (merge of #12) passed.
+- **Learned on that run: seed files run once per project.** The changed `03_exam_cycles.sql` was not re-run on dev; the CLI only updated its hash, and the "up to date" check still passed. The 2028/2029 rows were then added on dev by hand (SQL, 26 Sep). See `infra/README.md`.
 
 ### Exam cycles — PR #8, merged to `main`, on dev
 
@@ -94,7 +95,7 @@ The target exam years at signup come from data, not from a hard-coded month.
   - `exam_cycles` (exam, year, date, `date_confirmed`): everyone reads, content admins write.
   - `public.target_exam_years(exam_code, as_of)` returns the first sitting whose date is today or later (India time) plus the two years after it, or empty when none is recorded.
   - `complete_profile` and a new `profiles` trigger (`private.guard_target_exam_year`) both use the rule, so direct client updates of `target_exam_year` are checked too. Only changes are checked, so a year chosen earlier stays valid after its exam.
-  - Seed: NEET-UG 2027, 2028 and 2029, tentative, on the first Sunday of May (2 May 2027, 7 May 2028, 6 May 2029), `date_confirmed = false`. On dev since 26 Sep (2027 only until the 2028/2029 seed is pushed).
+  - Seed: NEET-UG 2027, 2028 and 2029, tentative, on the first Sunday of May (2 May 2027, 7 May 2028, 6 May 2029), `date_confirmed = false`. On dev since 26 Sep (2027 from the seed; 2028 and 2029 added by SQL, because a changed seed file is not re-run).
 - **App:** the profile step lists the years from the rule. It shows a retry when they fail to load, and a "signup paused" message when no upcoming date is recorded.
 - **Tests:** pgTAP 266 (new `05_exam_cycles.test.sql`; `04_signup` uses its own cycles, independent of the date), app 33.
 
@@ -104,7 +105,7 @@ The target exam years at signup come from data, not from a hard-coded month.
 |---|---|---|
 | Supabase | `supabase start` (Docker Desktop). Test numbers in `config.toml` | Ref `hzpuxfgfheizghpipmew`, Mumbai. Linked from this repo |
 | Migrations | All 11 (via `supabase db reset`) | All 11 applied, up to `20260929000100` (checked 26 Sep) |
-| Seed | Applied on reset | Syllabus (100 chapters), the two `2026-10-draft` policy versions, NEET-UG 2027 exam cycle (2028/2029 rows pending) |
+| Seed | Applied on reset | Syllabus (100 chapters), the two `2026-10-draft` policy versions, NEET-UG exam cycles 2027–2029 (2028/2029 added by SQL) |
 | Users / staff | Test numbers only | 1 test user (+91 99999 00001, "Test Student", minor, signup complete), 0 staff roles, 0 questions (26 Sep) |
 | Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | Test numbers +91 99999 00001–00005 / `123456` (valid until 31 Dec 2027); placeholder Twilio values; OTP expiry 300 s. The test numbers are public: **no real student or personal data on dev** |
 | `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Cloud Run `prepvruksha-api`: `https://prepvruksha-api-765197352192.asia-south1.run.app` (deployed from `main` by Deploy dev) |
@@ -118,7 +119,7 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 
 ## 3. Open to-do
 
-- [ ] **First database run of Deploy dev:** `gh workflow run deploy-dev.yml --ref main -f target=database --repo mvruksha-gravitas/prepvruksha`. It pushes the NEET 2028/2029 seed rows; then check `exam_cycles` on dev has 2027, 2028 and 2029.
+- [ ] **Before prod holds data** (optional until then): a warning in Deploy dev when the dry-run lists a seed file as "(hash update)", and a CLAUDE.md convention that data changes for existing projects go in migrations.
 - [ ] **Repository visibility:** the GitHub repository is **public**, while `ROADMAP.md` planned a private one. No secrets are in it (only project IDs, URLs and the public test numbers), but decide whether it should be private.
 - [ ] Local signup click-through (optional now that dev is verified): needs `"API_URL": "http://127.0.0.1:8000"` in `config/local.json` and the local API running.
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
