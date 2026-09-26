@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: exam cycles (PR #8, on dev) + tentative NEET 2028/2029 sittings
+Last updated: Deploy dev database step (branch `ci/deploy-dev-database`)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -78,6 +78,13 @@ Runbook: `infra/README.md`.
   - **Signup clicked through in Chrome on `https://prepvruksha-dev.web.app`** with +91 99999 00001: profile (minor), terms, parent +91 99999 00006 / `123456`, then home. The database has one test profile with two consents.
 - **Rule 13 in `CLAUDE.md`:** no real student or personal data in `prepvruksha-dev`.
 
+### Deploy dev: database step — branch `ci/deploy-dev-database`
+
+- When `supabase/**` changes, Deploy dev first runs `supabase db push --include-seed` against `prepvruksha-dev`. A dry-run is logged first, and a check afterwards confirms nothing is left to push.
+- The order is database, then API, then web. A failed or cancelled step stops the steps after it.
+- The manual run can target `all`, `database`, `both`, `api` or `web`.
+- The two secrets live only in the GitHub `dev` environment.
+
 ### Exam cycles — PR #8, merged to `main`, on dev
 
 The target exam years at signup come from data, not from a hard-coded month.
@@ -114,7 +121,8 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
 - [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
-- [ ] **Push the seed to dev after merging the NEET 2028/2029 rows:** `supabase db push --include-seed` (adds the missing rows only), then check `exam_cycles` has 2027, 2028 and 2029.
+- [ ] **GitHub `dev` environment for database pushes:** create it (limited to `main`) and set `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` (steps in `infra/README.md`) before merging the deploy-dev database change.
+- [ ] **NEET 2028/2029 seed rows on dev** (PR #9, merged): push them with `supabase db push --include-seed`, or run Deploy dev by hand with target `database` once the `dev` environment exists. Then check `exam_cycles` has 2027, 2028 and 2029.
 - [ ] **Keep exam dates on record:** NEET-UG 2027, 2028 and 2029 are tentative (first Sunday of May, `date_confirmed = false`). When NTA announces a date, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2030 sitting before 6 May 2029, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL.
 - [ ] **GitHub Actions on Node 20** (deprecated): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
