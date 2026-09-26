@@ -15,7 +15,7 @@ from prepvruksha_pipeline.parse.pricing import TokenUsage, cost_usd
 from prepvruksha_pipeline.parse.prompt import SYSTEM_PROMPT, page_instruction
 from prepvruksha_pipeline.parse.schema import PageParse
 from prepvruksha_pipeline.parse.validate import check_question
-from prepvruksha_pipeline.shared import Page
+from prepvruksha_pipeline.shared import Page, PageImage
 
 Effort = Literal["low", "medium", "high", "xhigh", "max"]
 MAX_TOKENS = 16_000
@@ -40,25 +40,39 @@ class PageResult:
     cost_usd: float | None
     seconds: float
     error: str | None = None
+    figure_count: int = 0
+
+
+def _image_block(image: PageImage) -> dict[str, Any]:
+    return {
+        "type": "image",
+        "source": {
+            "type": "base64",
+            "media_type": image.media_type,
+            "data": base64.standard_b64encode(image.data).decode("ascii"),
+        },
+    }
 
 
 def build_content(page: Page) -> list[dict[str, Any]]:
-    content: list[dict[str, Any]] = [
-        {
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": image.media_type,
-                "data": base64.standard_b64encode(image.data).decode("ascii"),
-            },
-        }
-        for image in page.images
-    ]
+    """The whole page image first, then each figure labelled, then the text."""
+    content: list[dict[str, Any]] = []
+    if page.images:
+        content.append({"type": "text", "text": "The whole page:"})
+        content += [_image_block(image) for image in page.images]
+    for figure in page.figures:
+        content.append({"type": "text", "text": f"Figure {figure.number}:"})
+        content.append(_image_block(figure.image))
     text = page_instruction(page.source_file, page.number, page.kind)
+    if page.figures:
+        unit = "section" if page.kind == "docx" else "page"
+        text += (
+            f" This {unit} has {len(page.figures)} figure(s), provided above as numbered images."
+        )
     if page.text:
         text += f"\n\n<source_text>\n{page.text}\n</source_text>"
     if page.images and page.kind == "pdf_both":
-        text += "\n\nThe image shows the same page; use it where the text layer is garbled."
+        text += "\n\nThe page image shows the same page; use it where the text is garbled."
     content.append({"type": "text", "text": text})
     return content
 
@@ -96,6 +110,7 @@ class PageParser:
                 cost_usd=cost_usd(self._model, usage),
                 seconds=round(time.monotonic() - started, 2),
                 error=error,
+                figure_count=len(page.figures),
             )
 
         try:
@@ -121,7 +136,7 @@ class PageParser:
         if not isinstance(parsed, PageParse):
             return result(None, usage, "no structured output")
         checked = parsed.model_copy(
-            update={"questions": [check_question(q) for q in parsed.questions]}
+            update={"questions": [check_question(q, len(page.figures)) for q in parsed.questions]}
         )
         return result(checked, usage)
 

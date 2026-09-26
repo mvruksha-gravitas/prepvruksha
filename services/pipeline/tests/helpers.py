@@ -24,6 +24,7 @@ def question(number: str | None = "1", **overrides: Any) -> ParsedQuestion:
         "answer": None,
         "explanation": None,
         "has_figure": False,
+        "figure_numbers": [],
         "figure_description": None,
         "subject_hint": "Physics",
         "chapter_hint": None,

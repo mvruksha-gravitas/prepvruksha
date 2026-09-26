@@ -17,6 +17,8 @@ def to_dict(result: PageResult) -> dict[str, Any]:
 
 
 def from_dict(data: dict[str, Any]) -> PageResult:
+    for question in (data.get("parse") or {}).get("questions", []):
+        question.setdefault("figure_numbers", [])  # results saved before figure linking
     return PageResult(
         page_key=data["page_key"],
         source_file=data["source_file"],
@@ -29,6 +31,7 @@ def from_dict(data: dict[str, Any]) -> PageResult:
         cost_usd=data["cost_usd"],
         seconds=data["seconds"],
         error=data.get("error"),
+        figure_count=data.get("figure_count", 0),
     )
 
 

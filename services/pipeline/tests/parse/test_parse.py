@@ -17,7 +17,7 @@ from prepvruksha_pipeline.parse import (
     normalize_number,
 )
 from prepvruksha_pipeline.parse.validate import check_question
-from prepvruksha_pipeline.shared import Page, PageImage
+from prepvruksha_pipeline.shared import Page, PageFigure, PageImage
 from tests.helpers import page_result, question
 
 
@@ -123,7 +123,8 @@ def test_parser_sends_page_content_and_checks_the_result() -> None:
     assert call["output_format"] is PageParse
     assert call["output_config"] == {"effort": "medium"}
     content = call["messages"][0]["content"]
-    assert content[0]["type"] == "image" and content[0]["source"]["media_type"] == "image/png"
+    assert content[0]["text"] == "The whole page:"
+    assert content[1]["type"] == "image" and content[1]["source"]["media_type"] == "image/png"
     assert "physics.pdf, page 3" in content[-1]["text"]
     assert "A body of mass 2 kg" in content[-1]["text"]
 
@@ -152,3 +153,29 @@ def test_results_round_trip_and_resume_keeps_the_last_success(tmp_path: Path) ->
     append_result(path, page_result("a.pdf", 1, [], error="later failure"))
     [loaded] = load_results(path)
     assert loaded.error is None and loaded.parse == ok.parse and loaded.usage == ok.usage
+
+
+# --- figures --------------------------------------------------------------------------
+def test_linked_figures_clear_figure_needed() -> None:
+    q = question(has_figure=True, figure_numbers=[1], flags=["figure_needed"], answer="A")
+    assert check_question(q, figure_count=1).flags == []
+
+
+def test_a_missing_figure_number_is_flagged() -> None:
+    q = question(has_figure=True, figure_numbers=[2], answer="A")
+    assert check_question(q, figure_count=1).flags == ["figure_needed"]
+
+
+def test_figures_are_sent_labelled_and_counted() -> None:
+    figure = PageFigure(number=1, image=PageImage("image/png", b"\x89PNG graph"))
+    page = Page("setb.pdf", 2, "pdf_both", text="13. ...", images=PAGE.images, figures=(figure,))
+    messages = FakeMessages(parsed=PageParse(questions=[], answer_key=[], notes=None))
+    result = PageParser(messages, "claude-opus-5").parse_page(page)
+    content = messages.calls[0]["messages"][0]["content"]
+    assert [b.get("text") for b in content if b["type"] == "text"][:2] == [
+        "The whole page:",
+        "Figure 1:",
+    ]
+    assert sum(b["type"] == "image" for b in content) == 2
+    assert "has 1 figure(s)" in content[-1]["text"]
+    assert result.figure_count == 1

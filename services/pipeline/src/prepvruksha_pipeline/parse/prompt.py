@@ -28,8 +28,12 @@ add the flag "answer_missing".
 into "answer_key", not into the questions.
 - A question cut off at the start or end of this page: include what is visible and \
 add the flag "incomplete".
-- A question that needs a diagram or image: set "has_figure", describe the figure \
-briefly in "figure_description", and add the flag "figure_needed".
+- A question that needs a diagram, graph or image: set "has_figure" and describe the \
+figure briefly in "figure_description". Figures cut out of the source are provided \
+as numbered images ("Figure 1", "Figure 2", ...; in Word text, "[Figure n]" marks \
+where each appears): list the numbers this question uses in "figure_numbers". Add \
+the flag "figure_needed" only if the question needs a figure that is not among \
+those provided.
 - If you are unsure a formula is transcribed exactly, add the flag "broken_math".
 - "confidence": your confidence (0 to 1) that the question, options and answer are \
 transcribed exactly.

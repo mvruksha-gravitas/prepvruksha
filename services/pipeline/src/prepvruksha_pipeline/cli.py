@@ -41,7 +41,7 @@ from prepvruksha_pipeline.parse import (
     default_messages_client,
     load_results,
 )
-from prepvruksha_pipeline.shared import Page, Settings
+from prepvruksha_pipeline.shared import Page, Settings, figure_asset_name
 
 RESULTS = "results.jsonl"
 RUN_INFO = "run.json"
@@ -64,6 +64,12 @@ def _extract_all(samples: Path, pdf_mode: str, out: Path) -> tuple[list[Page], l
             docx = extract_docx(path)
             pages += docx.pages
             warnings += [f"skipped image (unsupported format): {s}" for s in docx.skipped_images]
+    # Figures are saved as assets; questions link to them by figure number.
+    (out / "assets").mkdir(exist_ok=True)
+    for page in pages:
+        for figure in page.figures:
+            asset = out / "assets" / figure_asset_name(page.source_file, page.number, figure.number)
+            asset.write_bytes(figure.image.data)
     return pages, warnings
 
 
@@ -72,19 +78,20 @@ def cmd_run(args: argparse.Namespace) -> int:
     if settings.anthropic_api_key is None:
         print("ANTHROPIC_API_KEY is not set (services/pipeline/.env).", file=sys.stderr)
         return 2
+    # Model and effort come from settings (PARSE_MODEL / PARSE_EFFORT); the flags
+    # override them for one run.
     model = args.model or settings.parse_model
+    effort = args.effort or settings.parse_effort
     samples = Path(args.samples)
     out = (
         Path(args.out)
         if args.out
-        else samples
-        / "_runs"
-        / (f"{datetime.now():%Y%m%d-%H%M}-{args.pdf_mode}-{model}-{args.effort}")
+        else samples / "_runs" / (f"{datetime.now():%Y%m%d-%H%M}-{args.pdf_mode}-{model}-{effort}")
     )
     out.mkdir(parents=True, exist_ok=True)
     info = {
         "model": model,
-        "effort": args.effort,
+        "effort": effort,
         "pdf_mode": args.pdf_mode,
         "samples": str(samples),
     }
@@ -94,13 +101,16 @@ def cmd_run(args: argparse.Namespace) -> int:
     for warning in warnings:
         print(f"warning: {warning}")
     done = {r.page_key for r in load_results(out / RESULTS) if r.error is None}
+    if args.pages:
+        wanted = set(args.pages)
+        pages = [p for p in pages if f"{p.source_file}#{p.number}" in wanted]
     todo = [p for p in pages if p.key not in done][: args.limit or None]
     print(f"{len(pages)} pages/chunks, {len(done)} already done, {len(todo)} to parse -> {out}")
 
     parser = PageParser(
         default_messages_client(settings.anthropic_api_key.get_secret_value()),
         model,
-        args.effort,
+        effort,
     )
     spent = 0.0
     stopped = False
@@ -179,9 +189,12 @@ def main(argv: list[str] | None = None) -> int:
         help="auto: text layer, or the page image for scanned pages",
     )
     run.add_argument("--model", help="default: PARSE_MODEL or claude-opus-5")
-    run.add_argument("--effort", choices=get_args(Effort), default="high")
+    run.add_argument("--effort", choices=get_args(Effort), help="default: PARSE_EFFORT or high")
     run.add_argument("--workers", type=int, default=4)
     run.add_argument("--limit", type=int, default=0, help="parse at most N pages (0: all)")
+    run.add_argument(
+        "--pages", nargs="+", metavar="FILE#N", help='only these pages, e.g. "Set B.pdf#2"'
+    )
     run.add_argument(
         "--max-usd",
         type=float,

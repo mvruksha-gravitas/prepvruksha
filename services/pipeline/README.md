@@ -47,10 +47,20 @@ uv run prepvruksha-pipeline report --run "C:/prepvruksha-samples/_runs/<run>" --
 
 `run` saves each page's result as it goes. Running it again with the same
 `--out` folder resumes and retries failed pages without paying for finished
-ones. Options: `--model` (default `claude-opus-5`, or `PARSE_MODEL`), `--effort`
-(`low` … `max`, default `high`), `--workers`, `--limit`, `--max-usd`.
+ones. Model and effort are settings (`PARSE_MODEL`, default `claude-opus-5`;
+`PARSE_EFFORT`, default `high`); `--model` / `--effort` override them for one run.
+`--pages "file.pdf#2"` parses only the listed pages. Other options: `--workers`,
+`--limit`, `--max-usd`.
 
-PDF modes: `auto` (text layer; page image when a page has no text, i.e. a scan),
+Figures: embedded images on a PDF page, and images in Word files, are cut out,
+numbered in reading order ("Figure 1", …) and sent to the model, which lists the
+figures each question uses (`figure_numbers`). They are saved in the run's
+`assets/` folder (`<file>-p<page>-fig<n>.png`) and shown under their question in
+`review.html`. A question that needs a figure that was not found keeps the
+`figure_needed` flag.
+
+PDF modes: `auto` (text layer; the page image too when the page has figures, or
+only the page image when it has no text, i.e. a scan),
 `text`, `image` (every page as an image: how well Claude reads scans), `both`.
 
 ### The answer sheet

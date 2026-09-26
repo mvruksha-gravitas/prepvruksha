@@ -43,6 +43,9 @@ class ParsedQuestion(BaseModel):
     )
     explanation: str | None = Field(description="Only if a solution is printed with it")
     has_figure: bool
+    figure_numbers: list[int] = Field(
+        description="Numbers of the provided figures (Figure 1, 2, ...) this question uses"
+    )
     figure_description: str | None
     subject_hint: str | None
     chapter_hint: str | None

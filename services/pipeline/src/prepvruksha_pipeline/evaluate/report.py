@@ -8,6 +8,7 @@ from pathlib import Path
 
 from prepvruksha_pipeline.evaluate.metrics import Counts, Evaluation, Item, Spend, collect_items
 from prepvruksha_pipeline.parse import PageResult
+from prepvruksha_pipeline.shared import figure_asset_name
 
 
 def _pct(part: int, whole: int) -> str:
@@ -157,6 +158,7 @@ body { font: 15px/1.5 system-ui, sans-serif; margin: 16px; color: #1b1b1b; backg
 .page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px;
   border-top: 2px solid #ccc; padding: 12px 0; }
 .page img { width: 100%; border: 1px solid #ddd; }
+.q img.figure { max-width: 100%; width: auto; margin-top: 6px; }
 .q { border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; }
 .stem { white-space: pre-wrap; }
 .meta { color: #555; font-size: 13px; }
@@ -183,6 +185,11 @@ def _question_html(item: Item) -> str:
             f'<div class="meta">Figure: {html.escape(q.figure_description)}</div>'
             if q.figure_description
             else ""
+        )
+        + "".join(
+            f'<img class="figure" src="assets/{figure_asset_name(item.file, item.page, n)}" '
+            f'alt="Figure {n} linked to question {html.escape(q.number or "?")}">'
+            for n in q.figure_numbers
         )
         + "</div>"
     )

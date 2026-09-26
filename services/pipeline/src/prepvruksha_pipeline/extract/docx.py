@@ -2,7 +2,8 @@
 
 Word has no fixed pages, so the parse unit is a chunk of whole paragraphs.
 Embedded images in formats the model reads (PNG, JPEG, GIF, WebP) travel with
-their chunk; others (EMF/WMF, often old equation objects) are reported.
+their chunk as numbered figures; others (EMF/WMF, often old equation objects)
+are reported.
 """
 
 import re
@@ -12,7 +13,7 @@ from pathlib import Path
 
 import pypandoc
 
-from prepvruksha_pipeline.shared import Page, PageImage
+from prepvruksha_pipeline.shared import Page, PageFigure, PageImage
 
 MAX_CHUNK_CHARS = 60_000
 _MEDIA_TYPES = {
@@ -22,7 +23,7 @@ _MEDIA_TYPES = {
     ".gif": "image/gif",
     ".webp": "image/webp",
 }
-_IMG_SRC = re.compile(r'<img[^>]*\ssrc="([^"]+)"')
+_IMG_TAG = re.compile(r'<img[^>]*\ssrc="([^"]+)"[^>]*>')
 
 
 @dataclass
@@ -46,6 +47,28 @@ def _split_blocks(html: str, max_chars: int) -> list[str]:
     return chunks
 
 
+def _figures_from_images(
+    chunk: str, file_name: str, skipped: list[str]
+) -> tuple[str, list[PageFigure]]:
+    """Replace each <img> with a "[Figure k]" marker (reading order) and collect it.
+
+    The markers let the parser link each figure to its question.
+    """
+    figures: list[PageFigure] = []
+
+    def to_marker(match: re.Match[str]) -> str:
+        image_path = Path(match.group(1))
+        media_type = _MEDIA_TYPES.get(image_path.suffix.lower())
+        if media_type is None or not image_path.is_file():
+            skipped.append(f"{file_name}: {image_path.name}")
+            return "[image in an unsupported format]"
+        image = PageImage(media_type, image_path.read_bytes())  # type: ignore[arg-type]
+        figures.append(PageFigure(number=len(figures) + 1, image=image))
+        return f"[Figure {len(figures)}]"
+
+    return _IMG_TAG.sub(to_marker, chunk), figures
+
+
 def extract_docx(path: Path, max_chars: int = MAX_CHUNK_CHARS) -> DocxExtract:
     with tempfile.TemporaryDirectory() as media_dir:
         html = pypandoc.convert_file(
@@ -55,23 +78,14 @@ def extract_docx(path: Path, max_chars: int = MAX_CHUNK_CHARS) -> DocxExtract:
         )
         result = DocxExtract(pages=[])
         for number, chunk in enumerate(_split_blocks(html, max_chars), start=1):
-            images: list[PageImage] = []
-            for src in _IMG_SRC.findall(chunk):
-                image_path = Path(src)
-                media_type = _MEDIA_TYPES.get(image_path.suffix.lower())
-                if media_type is None or not image_path.is_file():
-                    result.skipped_images.append(f"{path.name}: {image_path.name}")
-                    continue
-                images.append(PageImage(media_type, image_path.read_bytes()))  # type: ignore[arg-type]
-            # Image paths are temporary; the model sees the image order instead.
-            text = _IMG_SRC.sub(lambda m: m.group(0).replace(m.group(1), "embedded-image"), chunk)
+            text, figures = _figures_from_images(chunk, path.name, result.skipped_images)
             result.pages.append(
                 Page(
                     source_file=path.name,
                     number=number,
                     kind="docx",
                     text=text.strip(),
-                    images=tuple(images),
+                    figures=tuple(figures),
                 )
             )
         return result
