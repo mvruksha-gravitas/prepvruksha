@@ -11,7 +11,7 @@ import secrets
 from functools import lru_cache
 from typing import Protocol
 
-from prepvruksha_api.shared.settings import get_settings
+from prepvruksha_api.consent.config import get_consent_settings
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class ParentCodeIssuer:
 
 @lru_cache
 def get_code_issuer() -> ParentCodeIssuer:
-    settings = get_settings()
+    settings = get_consent_settings()
     if settings.otp_hmac_key is None:
         raise RuntimeError("OTP_HMAC_KEY is not set")
     return ParentCodeIssuer(

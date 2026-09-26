@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prepvruksha_api import consent, profile
 from prepvruksha_api.shared import get_settings
 
-get_settings().check_production_safety()
+consent.check_production_safety(get_settings().app_env)
 
 app = FastAPI(title="PrepVruksha API", version="0.1.0")
 app.add_middleware(
