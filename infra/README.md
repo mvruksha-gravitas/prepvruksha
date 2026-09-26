@@ -22,15 +22,21 @@ the active configuration.
 
 ## Dev deploys
 
-`.github/workflows/deploy-dev.yml` runs after CI passes on `main`:
+`.github/workflows/deploy-dev.yml` runs after CI passes on `main`, in this
+order. A failed step stops the steps after it.
 
 | Changed | Deploys |
 |---|---|
+| `supabase/**` | `supabase db push --include-seed` to `prepvruksha-dev`, then a check that no migration is left |
 | `services/api/**`, `infra/cloudrun/**` | API image → Artifact Registry → Cloud Run `prepvruksha-api`, then checks `/health` |
 | `apps/app/**`, `packages/core|ui_kit/**`, `pubspec.*`, `firebase.json` | `flutter build web` → Firebase Hosting `prepvruksha-dev.web.app` |
 
-Both deploy when the workflow file changes. Redeploy by hand from Actions >
-Deploy dev > Run workflow (`both` / `api` / `web`).
+API and web both deploy when the workflow file changes. Run it by hand from
+Actions > Deploy dev > Run workflow: `both` (API + web), `all` (database, API,
+web), `database`, `api` or `web`.
+
+The seed runs on every database push. Seed files must stay safe to re-run
+(`on conflict`), and must not overwrite what content admins edit.
 
 | Resource | Value |
 |---|---|
@@ -76,6 +82,34 @@ gcloud.cmd secrets versions access latest --secret=OTP_HMAC_KEY --project=prepvr
 Rotating: add a new version the same way, then redeploy the API (it reads
 `:latest` at deploy time). Changing `OTP_HMAC_KEY` invalidates pending parent
 codes only.
+
+### GitHub "dev" environment (database push)
+
+The database step uses two secrets stored only in the GitHub environment
+`dev`, never in the repository or its variables:
+
+| Secret | What |
+|---|---|
+| `SUPABASE_ACCESS_TOKEN` | Supabase personal access token (lets the CLI link the project) |
+| `SUPABASE_DB_PASSWORD` | Database password of `prepvruksha-dev` |
+
+Create the environment once (Settings > Environments > New environment >
+`dev`; under Deployment branches choose "Selected branches" and add `main`),
+then set the secrets from Git Bash. `gh` prompts for each value without
+showing it:
+
+```bash
+gh secret set SUPABASE_ACCESS_TOKEN --env dev --repo mvruksha-gravitas/prepvruksha
+gh secret set SUPABASE_DB_PASSWORD --env dev --repo mvruksha-gravitas/prepvruksha
+gh secret list --env dev --repo mvruksha-gravitas/prepvruksha   # names only
+```
+
+- Access token: supabase.com/dashboard/account/tokens > Generate new token
+  (name it `github-deploy-dev`). It acts as your Supabase account, so revoke
+  and replace it there if it may have leaked.
+- Database password: the one set when the project was created. If unknown,
+  reset it under Project Settings > Database (then update the secret, and
+  re-run `supabase link` locally).
 
 ### GitHub repository variables
 
