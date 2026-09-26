@@ -216,6 +216,14 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
 
 Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made staff by SQL); the console's auth is built so a stronger method can be added for production staff (see launch blockers).
 
+### Current slice: sub-topics and difficulty (approved 26 Sep: 1a load the draft, 2a strict publish rule)
+
+Additions approved with it: publish only when the sub-topic is `expert_reviewed`; removed chapters/topics/sub-topics stay in the tree with `is_removed` (old PYQs still get a sub-topic), and practice and mocks exclude removed sub-topics by default; Chemistry and Physics drafts are built from the official NMC NEET-UG syllabus PDF (`C:\prepvruksha-reference\`, never committed) and NCERT contents, and the Biology draft is checked against the PDF (differences listed) **before** it is loaded.
+
+- [x] Schema (branch `feat/subtopics`, local): migration `20261001000100` (`sub_topics`, question sub-topic/difficulty columns, publish guards, `question_topics` dropped). pgTAP 371.
+- [x] Loader (local): `uv run prepvruksha-pipeline syllabus-sql` writes a numbered **seed file** from `docs/syllabus/*.md` (migrations run before the chapter seed on fresh databases). Upserts, never deletes; pinned slugs `{old-slug}`; notice for rows the markdown no longer has. Trial-loaded Biology locally: 32 chapters, 170 topics, 355 sub-topics; correction/approval/re-run cases checked. Pipeline tests: 54.
+- [ ] **Blocked on the syllabus PDF** (not yet in `C:\prepvruksha-reference\`): Biology check against it (list differences), removed Biology chapters' topics, then `04_syllabus_biology.sql`; Chemistry and Physics drafts.
+
 ### Build order (revised 26 Sep; weeks in `ROADMAP.md`)
 
 1. Pipeline slice 1: secret scanning, staff console and uploads with rights status (week 2).

@@ -68,11 +68,13 @@ source_modules = [
     "prepvruksha_pipeline.extract",
     "prepvruksha_pipeline.parse",
     "prepvruksha_pipeline.evaluate",
+    "prepvruksha_pipeline.syllabus",
 ]
 forbidden_modules = [
     "prepvruksha_pipeline.extract.**",
     "prepvruksha_pipeline.parse.**",
     "prepvruksha_pipeline.evaluate.**",
+    "prepvruksha_pipeline.syllabus.**",
 ]
 allow_indirect_imports = true
 unmatched_ignore_imports_alerting = "none"
@@ -80,6 +82,7 @@ ignore_imports = [
     "prepvruksha_pipeline.extract.** -> prepvruksha_pipeline.extract.**",
     "prepvruksha_pipeline.parse.** -> prepvruksha_pipeline.parse.**",
     "prepvruksha_pipeline.evaluate.** -> prepvruksha_pipeline.evaluate.**",
+    "prepvruksha_pipeline.syllabus.** -> prepvruksha_pipeline.syllabus.**",
 ]
 
 [[tool.importlinter.contracts]]
@@ -90,6 +93,7 @@ forbidden_modules = [
     "prepvruksha_pipeline.extract",
     "prepvruksha_pipeline.parse",
     "prepvruksha_pipeline.evaluate",
+    "prepvruksha_pipeline.syllabus",
     "prepvruksha_pipeline.cli",
 ]
 

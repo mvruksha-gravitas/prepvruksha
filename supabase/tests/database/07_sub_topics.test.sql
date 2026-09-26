@@ -136,7 +136,9 @@ insert into public.staff_roles (user_id, role) values
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"aaaaaaaa-7777-7777-7777-777777777777","role":"authenticated"}';
-select is((select count(*)::int from public.sub_topics), 4, 'a student reads the tree');
+select is((select count(*)::int from public.sub_topics
+            where slug in ('third-law', 'draft-only', 'removed-bit', 'work-done')), 4,
+  'a student reads the tree');
 update public.sub_topics set expert_reviewed = true where slug = 'draft-only';
 reset role;
 select is((select expert_reviewed from public.sub_topics where slug = 'draft-only'), false,

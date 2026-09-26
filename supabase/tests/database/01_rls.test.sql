@@ -79,8 +79,7 @@ select is(
    where question_id in ('aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000003'))::int, 0,
   'anon: cannot read options of draft or reserved questions'
 );
-select results_eq('select slug from public.sub_topics',
-  $$ values ('action-reaction-pairs') $$,
+select is((select count(*)::int from public.sub_topics where slug = 'action-reaction-pairs'), 1,
   'anon: reads the sub-topic tree');
 select throws_ok(
   $$ insert into public.sub_topics (topic_id, chapter_id, slug, name_en)
