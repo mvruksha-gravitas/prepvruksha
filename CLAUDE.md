@@ -74,7 +74,8 @@ docs/
 - Dart: follow the conventions already used in Vidhyavruksha ERP where they exist; otherwise `flutter_lints`, Riverpod for state, `go_router` for navigation.
 - Python: type hints everywhere, `ruff` + `mypy`, `pytest` for tests.
 - SQL: snake_case, plural table names, `uuid` primary keys, `created_at` / `updated_at` on every table.
-- Every schema change is a migration in `supabase/migrations/`. Never edit the production schema by hand.
+- Every schema change is a migration in `supabase/migrations/`. Never edit the production schema by hand. Never edit a migration that has been pushed; add a new one.
+- Every new table or view needs explicit `GRANT`s for `anon` / `authenticated` / `service_role` in its migration (nothing is granted by default; `supabase/tests/database/03_privileges.test.sql` fails until the table is added to its matrix). Never grant `TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to API roles.
 - Secrets live in Supabase / GCP Secret Manager and local `.env` files that are git-ignored. Never commit keys.
 - Keep Kannada and English as first-class: all user-facing strings go through localisation (`intl` / ARB files).
 
@@ -87,4 +88,39 @@ docs/
 
 ## Commands
 
-_To be filled in as the project is set up (run, test, migrate, deploy)._
+Prerequisites: Flutter 3.47 (stable), Supabase CLI, Docker Desktop, uv. Run from the repo root unless noted.
+
+**Database (local Supabase)** — see `supabase/README.md`
+```
+supabase start                      # local stack; prints URL + publishable key
+supabase db reset                   # rebuild local DB from migrations + seed
+supabase test db                    # pgTAP RLS / schema tests
+supabase db lint                    # schema checks
+supabase migration new <name>       # new migration in supabase/migrations/
+supabase db push --include-seed     # apply to the linked remote (prepvruksha-dev)
+```
+Test phone numbers: +91 99999 00001–00005, code `123456` (no SMS sent).
+
+**Flutter** (pub workspace; `flutter pub get` at the root resolves everything)
+```
+flutter analyze                     # whole workspace
+dart format apps packages
+cd packages/core && dart test
+cd apps/app && flutter test         # likewise apps/console, packages/ui_kit
+cd apps/app && flutter gen-l10n     # after editing lib/l10n/*.arb
+
+# run: copy config/<env>.example.json to config/<env>.json first (git-ignored)
+cd apps/app && flutter run -d chrome --dart-define-from-file=../../config/local.json
+cd apps/app && flutter run --flavor dev --dart-define-from-file=../../config/dev.json   # Android
+```
+Android emulator + local Supabase: use `http://10.0.2.2:54321` as `SUPABASE_URL`.
+
+**Python services** (`services/api`, `services/pipeline`, `services/seo`; each a uv project)
+```
+cd services/api
+uv sync
+uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+uv run uvicorn prepvruksha_api.main:app --reload
+```
+
+**CI:** `.github/workflows/ci.yml` runs all of the above checks on every PR and push to `main`.

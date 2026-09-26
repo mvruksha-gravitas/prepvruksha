@@ -26,12 +26,12 @@ Don't set up every service in advance. Add each one when the slice that needs it
 
 - [ ] GitHub repository `prepvruksha` (private); add this folder; branch protection on `main`.
 - [ ] Supabase organisation; project `prepvruksha-dev` in the **Mumbai** region; enable the `vector` extension.
-- [ ] Supabase CLI locally (WSL2 + Docker) — `supabase init`, `supabase start` for a local database.
+- [x] Supabase CLI locally (Docker Desktop) — `supabase init`, `supabase start` for a local database.
 - [ ] Google Cloud project `prepvruksha-dev` (this is also the Firebase project): enable Cloud Run, Artifact Registry, Secret Manager, Cloud Scheduler; default region `asia-south1`.
 - [ ] Firebase: add the project, enable Hosting and Cloud Messaging only.
 - [ ] **Budget alerts** on GCP and a spend cap on Supabase.
 - [ ] API accounts: Anthropic (Claude API), Mathpix. Keys into Secret Manager and a local `.env`.
-- [ ] Flutter: create `apps/app`, `apps/console`, `packages/core`, `packages/ui_kit` (melos or pub workspaces).
+- [x] Flutter: create `apps/app`, `apps/console`, `packages/core`, `packages/ui_kit` (pub workspaces).
 
 ### Before public launch — production
 
@@ -57,6 +57,8 @@ Don't set up every service in advance. Add each one when the slice that needs it
 | Jan 2027 | **Launch** | Weekly live mocks begin; Android app on Play Store; web app live |
 
 Publish the first reviewed question pages as early as week 6 — search ranking takes months.
+
+**No real user signs up until the signup and parental-consent flow is complete** (the slice after Foundations). Until then only the Supabase test phone numbers are used.
 
 ## 4. Phase 2 — Retention (February → May 2027)
 

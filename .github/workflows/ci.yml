@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    name: Flutter (analyze + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+      - name: Get dependencies (workspace)
+        run: flutter pub get
+      - name: Localisation files are up to date
+        working-directory: apps/app
+        run: |
+          flutter gen-l10n
+          git diff --exit-code -- lib/l10n/generated
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed apps packages
+      - name: Analyze
+        run: flutter analyze
+      - name: Test packages/core
+        working-directory: packages/core
+        run: dart test
+      - name: Test packages/ui_kit
+        working-directory: packages/ui_kit
+        run: flutter test
+      - name: Test apps/app
+        working-directory: apps/app
+        run: flutter test
+      - name: Test apps/console
+        working-directory: apps/console
+        run: flutter test
+
+  python:
+    name: Python (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, pipeline, seo]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/${{ matrix.service }}/uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest -q
+
+  database:
+    name: Database (migrations + RLS tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+      - name: Start Postgres and apply migrations + seed
+        run: supabase db start
+      - name: Lint schema
+        run: supabase db lint --fail-on error
+      - name: pgTAP tests
+        run: supabase test db
