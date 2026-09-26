@@ -146,6 +146,7 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 
 Minor, non-urgent improvements. Done in batches when asked, not on the side of other work (see "How to work" in `CLAUDE.md`). Security, privacy and correctness items never go here.
 
+- [ ] **`StarletteDeprecationWarning` in API tests** ("Using `httpx` with `starlette.testclient` is deprecated; install `httpx2`"): comes from FastAPI's `TestClient`, not our code; switch when FastAPI/Starlette settle on the replacement.
 - [ ] **GitHub Actions on Node 20** (deprecated warnings): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
 - [ ] **import-linter for `services/seo`** once it has feature folders (CI skips the step until then; the API and pipeline have contracts).
 - [ ] **Seed "hash update" warning** in Deploy dev (a changed seed file is not re-run on existing projects) and a CLAUDE.md convention that data changes for existing projects go in migrations. Do before prod holds data.

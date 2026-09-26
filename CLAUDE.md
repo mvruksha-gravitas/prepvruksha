@@ -101,9 +101,11 @@ docs/
 - When a requirement in `docs/` is unclear or conflicts with code, ask rather than guess.
 - Update the relevant doc when a decision changes.
 - **Polish list:** minor, non-urgent improvements go to the "Polish list" in `docs/STATUS.md` instead of being done on the side; they are done in batches when asked. Security, privacy and correctness items are never polish: they go into the current work.
-- **Merging:** Claude may merge its own docs-only PRs (`gh pr merge <number> --merge --delete-branch`) after CI passes, then update `main` (`git checkout main && git pull`). Code PRs are merged only when the owner says so.
+- **Merging:** Claude may merge its own docs-only PRs (`gh pr merge <number> --merge --delete-branch`) after CI passes, then update `main` (`git checkout main; git pull`). Code PRs are merged only when the owner says so.
 
 ## Commands
+
+Commands are written for **Windows PowerShell 5.1** (the owner's shell): it has no `&&`, so chains use `;` or `if ($?) { ... }` to stop on failure. In bash, `&&` works as usual.
 
 Prerequisites: Flutter 3.47 (stable), Supabase CLI, Docker Desktop, uv. Run from the repo root unless noted.
 
@@ -130,13 +132,13 @@ Test phone numbers: +91 99999 00001–00005, code `123456` (no SMS sent).
 flutter analyze                     # whole workspace
 dart run tool/check_import_boundaries.dart   # feature import boundaries
 dart format apps packages
-cd packages/core && dart test
-cd apps/app && flutter test         # likewise apps/console, packages/ui_kit
-cd apps/app && flutter gen-l10n     # after editing lib/l10n/*.arb
+cd packages/core; dart test
+cd apps/app; flutter test          # likewise apps/console, packages/ui_kit
+cd apps/app; flutter gen-l10n      # after editing lib/l10n/*.arb
 
 # run: copy config/<env>.example.json to config/<env>.json first (git-ignored)
-cd apps/app && flutter run -d chrome --dart-define-from-file=../../config/local.json
-cd apps/app && flutter run --flavor dev --dart-define-from-file=../../config/dev.json   # Android
+cd apps/app; flutter run -d chrome --dart-define-from-file=../../config/local.json
+cd apps/app; flutter run --flavor dev --dart-define-from-file=../../config/dev.json   # Android
 ```
 App config needs `API_URL` (local API: `http://127.0.0.1:8000`). Android emulator + local Supabase/API: use `http://10.0.2.2:54321` as `SUPABASE_URL` and `http://10.0.2.2:8000` as `API_URL`.
 
@@ -144,7 +146,7 @@ App config needs `API_URL` (local API: `http://127.0.0.1:8000`). Android emulato
 ```
 cd services/api
 uv sync                             # copy .env.example to .env first (secret key, OTP_HMAC_KEY)
-uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run lint-imports && uv run pytest
+uv run ruff check .; if ($?) { uv run ruff format --check . }; if ($?) { uv run mypy }; if ($?) { uv run lint-imports }; if ($?) { uv run pytest }
 uv run uvicorn prepvruksha_api.main:app --reload
 ```
 
