@@ -12,7 +12,7 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from prepvruksha_api.settings import get_settings
+from prepvruksha_api.shared.settings import get_settings
 
 
 class JwtVerifier:

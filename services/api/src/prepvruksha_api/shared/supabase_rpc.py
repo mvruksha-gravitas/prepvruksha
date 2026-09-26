@@ -9,7 +9,7 @@ from typing import Any, Protocol
 
 import httpx
 
-from prepvruksha_api.settings import get_settings
+from prepvruksha_api.shared.settings import get_settings
 
 
 class RuleViolationError(Exception):

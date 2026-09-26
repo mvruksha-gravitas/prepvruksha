@@ -11,7 +11,7 @@ import secrets
 from functools import lru_cache
 from typing import Protocol
 
-from prepvruksha_api.settings import get_settings
+from prepvruksha_api.shared.settings import get_settings
 
 logger = logging.getLogger(__name__)
 

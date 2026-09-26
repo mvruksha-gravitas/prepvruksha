@@ -16,6 +16,7 @@ dev = [
     "pytest>=8.3",
     "mypy>=1.13",
     "ruff>=0.8",
+    "import-linter>=2.15",
 ]
 
 [build-system]
@@ -43,3 +44,42 @@ files = ["src", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Feature boundaries (see "Modularity" in CLAUDE.md). A feature imports another
+# only through its public entry (`prepvruksha_api.<feature>`), never its modules.
+[tool.importlinter]
+root_package = "prepvruksha_api"
+
+[[tool.importlinter.contracts]]
+name = "Features use each other only through their public entry"
+type = "forbidden"
+source_modules = [
+    "prepvruksha_api.auth",
+    "prepvruksha_api.profile",
+    "prepvruksha_api.consent",
+]
+forbidden_modules = [
+    "prepvruksha_api.auth.**",
+    "prepvruksha_api.profile.**",
+    "prepvruksha_api.consent.**",
+]
+# Importing a feature's entry reaches its modules indirectly; that is allowed.
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+# A feature may of course import its own modules.
+ignore_imports = [
+    "prepvruksha_api.auth.** -> prepvruksha_api.auth.**",
+    "prepvruksha_api.profile.** -> prepvruksha_api.profile.**",
+    "prepvruksha_api.consent.** -> prepvruksha_api.consent.**",
+]
+
+[[tool.importlinter.contracts]]
+name = "Shared code does not depend on features"
+type = "forbidden"
+source_modules = ["prepvruksha_api.shared"]
+forbidden_modules = [
+    "prepvruksha_api.auth",
+    "prepvruksha_api.profile",
+    "prepvruksha_api.consent",
+    "prepvruksha_api.main",
+]

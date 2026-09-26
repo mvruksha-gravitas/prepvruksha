@@ -6,8 +6,8 @@ Run locally: `uv run uvicorn prepvruksha_api.main:app --reload`
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from prepvruksha_api import signup
-from prepvruksha_api.settings import get_settings
+from prepvruksha_api import consent, profile
+from prepvruksha_api.shared import get_settings
 
 get_settings().check_production_safety()
 
@@ -18,7 +18,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Authorization", "Content-Type"],
 )
-app.include_router(signup.router)
+app.include_router(profile.router)
+app.include_router(consent.router)
 
 
 @app.get("/health")
