@@ -10,8 +10,11 @@ Columns listed are the important ones, not exhaustive. Migrations are the source
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `profiles` | `id` (= `auth.users.id`), `full_name`, `phone`, `preferred_language` (`en`/`kn`), `date_of_birth`, `target_exam_year`, `category`, `home_state` | One per user, created by a trigger on `auth.users`. `phone` is digits without `+` (as Supabase Auth stores it, e.g. `919999900001`). `category` holds central (MCC) categories (`general`, `ews`, `obc_ncl`, `sc`, `st`); `state_category` (KEA) and `pwd` are added before the college predictor. Minor status is derived with `private.is_minor(user_id)` (null when the date of birth is unknown), never stored. `phone` and `date_of_birth` are not client-editable. Category/state feed the predictor later. |
-| `consents` | `user_id`, `type` (`parental`, `terms`, `marketing`), `policy_version`, `granted_by_name`, `granted_by_phone`, `granted_at`, `method` (`parent_otp`, `in_app`, `offline_form`), `withdrawn_at` | DPDP parental consent for under-18s. Parental rows must name the parent and their phone. Withdrawal is recorded, not deleted. |
+| `profiles` | `id` (= `auth.users.id`), `full_name`, `phone`, `preferred_language` (`en`/`kn`), `date_of_birth`, `target_exam_year`, `category`, `home_state` | One per user, created by a trigger on `auth.users`. `phone` is digits without `+` (as Supabase Auth stores it, e.g. `919999900001`). `category` holds central (MCC) categories (`general`, `ews`, `obc_ncl`, `sc`, `st`); `state_category` (KEA) and `pwd` are added before the college predictor. Minor status is derived with `private.is_minor(user_id)` (null when the date of birth is unknown), never stored. `phone` and `date_of_birth` are not client-editable; `date_of_birth` is set once at signup (ages 13–30) and only staff can correct it (`public.correct_date_of_birth`, audited). Category is optional at signup; category/state feed the predictor later. |
+| `consents` | `user_id`, `type` (`parental`, `terms`, `marketing`), `policy_version`, `scope`, `granted_by_name`, `granted_by_phone`, `granted_at`, `method` (`parent_otp`, `in_app`, `offline_form`), `request_id`, `withdrawn_at` | DPDP consent. Parental rows must name the parent and their phone; `parent_otp` rows reference the verified request. One active consent per user/type/version. Withdrawal is recorded, not deleted. Written only by the signup functions. |
+| `policy_versions` | `type` (`terms`, `parental`), `version`, `scope`, `document_url`, `is_current` | One current version per type. A new terms version makes students accept again. |
+| `parental_consent_requests` | `user_id`, `parent_name`, `parent_phone`, `policy_version`, `scope`, `code_hash`, `status` (`pending`, `verified`, `expired`, `locked`, `superseded`, `cancelled`), `attempts`, `max_attempts`, `expires_at`, `verified_at` | One row per code sent to a parent. Only a keyed hash of the code, cleared once closed. Kept as evidence and for daily limits. Service role only. |
+| `audit_log` | `actor_id`, `action`, `target_table`, `target_id`, `details` (jsonb) | Append-only record of sensitive changes (date-of-birth corrections; later publishing and role changes). |
 | `institutions` | `name`, `type` (`pu_college`, `school`, `tutorial`), `city`, `erp_source` (`vidhyavruksha`/null), `erp_external_id`, `branding` (jsonb) | |
 | `memberships` | `user_id`, `institution_id`, `role` (`student`, `teacher`, `admin`), `status` | A student can belong to several institutions over time. |
 | `batches` | `institution_id`, `name`, `academic_year` | |
@@ -98,6 +101,9 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 | `attempts`, `attempt_answers`, analytics | The user; teachers/admins of an institution the user belongs to (only for that institution's tests); parents per `visibility` | API service only (scores); app only through the API |
 | `memberships`, `batches` | Institution admins; the member | Institution admins |
 | `consents` | The user; super admins | Signup flow via API (service role) only |
+| `parental_consent_requests` | Service role only | Signup flow via API only |
+| `policy_versions` | Everyone | Service role (migrations/seed; later the console via the API) |
+| `audit_log` | Super admins | Service role (insert only; never updated or deleted) |
 
 ## 9. Indexes to create early
 

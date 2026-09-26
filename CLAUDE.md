@@ -69,6 +69,7 @@ docs/
 9. **All data in Indian regions** (Supabase Mumbai, GCP `asia-south1`).
 10. **Minors' data:** parental consent is required at signup for users under 18 (DPDP Act). Students control how much detail parents see.
 11. **SEO pages are generated only from `published` questions.**
+12. **No behavioural tracking or targeted advertising for users under 18.** Any analytics added later must respect this: check minor status server-side, and treat unknown age as a minor.
 
 ## Conventions
 
@@ -115,12 +116,12 @@ cd apps/app && flutter gen-l10n     # after editing lib/l10n/*.arb
 cd apps/app && flutter run -d chrome --dart-define-from-file=../../config/local.json
 cd apps/app && flutter run --flavor dev --dart-define-from-file=../../config/dev.json   # Android
 ```
-Android emulator + local Supabase: use `http://10.0.2.2:54321` as `SUPABASE_URL`.
+App config needs `API_URL` (local API: `http://127.0.0.1:8000`). Android emulator + local Supabase/API: use `http://10.0.2.2:54321` as `SUPABASE_URL` and `http://10.0.2.2:8000` as `API_URL`.
 
 **Python services** (`services/api`, `services/pipeline`, `services/seo`; each a uv project)
 ```
 cd services/api
-uv sync
+uv sync                             # copy .env.example to .env first (secret key, OTP_HMAC_KEY)
 uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
 uv run uvicorn prepvruksha_api.main:app --reload
 ```

@@ -25,6 +25,7 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(auth),
           profileRepositoryProvider.overrideWithValue(profiles),
+          signupRepositoryProvider.overrideWithValue(FakeSignupRepository()),
         ],
         child: const PrepVrukshaApp(),
       ),
@@ -110,7 +111,6 @@ void main() {
 
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('Signed in as +91 99999 00001'), findsOneWidget);
-    expect(find.text('Complete your profile to get started.'), findsNothing);
 
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();

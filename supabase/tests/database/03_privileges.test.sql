@@ -32,11 +32,19 @@ insert into expected_privs values
   ('staff_roles',      'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
   ('seo_questions',    'anon',          '{}'),
   ('seo_questions',    'authenticated', '{}'),
-  ('seo_questions',    'service_role',  '{SELECT}');
+  ('seo_questions',    'service_role',  '{SELECT}'),
+  ('policy_versions',  'anon',          '{SELECT}'),
+  ('policy_versions',  'authenticated', '{SELECT}'),
+  ('parental_consent_requests', 'anon',          '{}'),
+  ('parental_consent_requests', 'authenticated', '{}'),
+  ('audit_log',        'anon',          '{}'),
+  ('audit_log',        'authenticated', '{SELECT}'),
+  ('audit_log',        'service_role',  '{SELECT,INSERT}');
 insert into expected_privs
 select t, 'service_role', '{SELECT,INSERT,UPDATE,DELETE}'
 from unnest(array['exams', 'subjects', 'chapters', 'topics', 'questions', 'question_topics',
-                  'question_options', 'profiles', 'consents', 'staff_roles']) as t;
+                  'question_options', 'profiles', 'consents', 'staff_roles', 'policy_versions',
+                  'parental_consent_requests']) as t;
 
 select is(
   (select array_agg(c.relname::text order by c.relname)
@@ -108,6 +116,34 @@ select function_privs_are('private', 'generate_short_id', array[]::text[], 'anon
   'anon cannot execute private.generate_short_id');
 select function_privs_are('private', 'handle_auth_user_change', array[]::text[], r, '{}',
   format('%s cannot execute the auth trigger function', r))
+from unnest(array['anon', 'authenticated']) as r;
+
+-- Signup functions: only the API (service role) may call them
+select function_privs_are('public', f.name, f.args, r, '{}',
+  format('%s cannot execute public.%s', r, f.name))
+from (values
+  ('get_signup_state', array['uuid']),
+  ('complete_profile', array['uuid', 'text', 'date', 'smallint', 'text', 'text']),
+  ('accept_terms', array['uuid', 'text']),
+  ('start_parental_consent', array['uuid', 'text', 'text', 'text']),
+  ('verify_parental_consent', array['uuid', 'text']),
+  ('withdraw_consent', array['uuid', 'text']),
+  ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text'])
+) as f (name, args)
+cross join unnest(array['anon', 'authenticated']) as r;
+select function_privs_are('public', f.name, f.args, 'service_role', '{EXECUTE}',
+  format('service_role can execute public.%s', f.name))
+from (values
+  ('get_signup_state', array['uuid']),
+  ('complete_profile', array['uuid', 'text', 'date', 'smallint', 'text', 'text']),
+  ('accept_terms', array['uuid', 'text']),
+  ('start_parental_consent', array['uuid', 'text', 'text', 'text']),
+  ('verify_parental_consent', array['uuid', 'text']),
+  ('withdraw_consent', array['uuid', 'text']),
+  ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text'])
+) as f (name, args);
+select function_privs_are('private', 'signup_status', array['uuid', 'date'], r, '{}',
+  format('%s cannot execute private.signup_status', r))
 from unnest(array['anon', 'authenticated']) as r;
 
 select * from finish();

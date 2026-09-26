@@ -8,3 +8,6 @@ export 'src/auth/phone_number.dart';
 export 'src/config/app_config.dart';
 export 'src/profile/profile.dart';
 export 'src/profile/profile_repository.dart';
+export 'src/signup/api_signup_repository.dart';
+export 'src/signup/signup_repository.dart';
+export 'src/signup/signup_state.dart';

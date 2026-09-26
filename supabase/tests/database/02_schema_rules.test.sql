@@ -22,6 +22,9 @@ select is(
 select is(private.is_minor('11111111-1111-1111-1111-111111111111'), null::boolean,
   'is_minor is null when the date of birth is unknown');
 
+-- Date of birth is set once (see 04_signup); these checks re-set it, which
+-- only a staff correction may do.
+select set_config('prepvruksha.dob_correction', 'on', true);
 update public.profiles set date_of_birth = current_date - interval '17 years'
 where id = '11111111-1111-1111-1111-111111111111';
 select is(private.is_minor('11111111-1111-1111-1111-111111111111'), true, 'is_minor: 17 years old');
@@ -34,6 +37,7 @@ update public.profiles set date_of_birth = current_date - interval '18 years' + 
 where id = '11111111-1111-1111-1111-111111111111';
 select is(private.is_minor('11111111-1111-1111-1111-111111111111'), true, 'is_minor: one day before turning 18');
 
+select set_config('prepvruksha.dob_correction', 'off', true);
 select hasnt_column('public', 'profiles', 'is_minor', 'profiles has no stored is_minor column');
 
 -- updated_at trigger (now() is fixed within a transaction, so backdate first)
@@ -47,13 +51,21 @@ select ok(
 -- Consents
 -- ---------------------------------------------------------------------------
 select throws_ok(
-  $$ insert into public.consents (user_id, type, policy_version, method)
-     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'parent_otp') $$,
+  $$ insert into public.consents (user_id, type, policy_version, scope, method)
+     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'Test scope', 'offline_form') $$,
   '23514', null, 'parental consent must name the parent and their phone');
+select throws_ok(
+  $$ insert into public.consents (user_id, type, policy_version, scope, method, granted_by_name, granted_by_phone)
+     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'Test scope', 'parent_otp', 'Parent', '919000000110') $$,
+  '23514', null, 'parent_otp consent must reference the verified request');
 select lives_ok(
-  $$ insert into public.consents (user_id, type, policy_version, method, granted_by_name, granted_by_phone)
-     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'parent_otp', 'Parent', '910000000110') $$,
+  $$ insert into public.consents (user_id, type, policy_version, scope, method, granted_by_name, granted_by_phone)
+     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'Test scope', 'offline_form', 'Parent', '919000000110') $$,
   'parental consent with parent details is accepted');
+select throws_ok(
+  $$ insert into public.consents (user_id, type, policy_version, scope, method, granted_by_name, granted_by_phone)
+     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'Test scope', 'offline_form', 'Parent', '919000000110') $$,
+  '23505', null, 'only one active consent per user, type and policy version');
 
 -- ---------------------------------------------------------------------------
 -- Questions

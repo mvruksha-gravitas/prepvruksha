@@ -54,6 +54,7 @@ Version 0.1 · 25 September 2026
 ### 2.3 services/api (FastAPI on Cloud Run)
 
 Responsibilities:
+- Signup: profile completion, terms and parental consent (parent OTP), consent withdrawal (`/me/*`). The rules are Postgres functions called with the secret key.
 - Starting an attempt: returns the paper (question IDs, content, pattern config) once, with a signed session token.
 - Accepting batched answer syncs and the final submission; scoring against the stored answer key.
 - Analytics: result summaries, percentile, chapter heatmap, negative-marking and time analysis.
@@ -61,7 +62,7 @@ Responsibilities:
 - AI tutor endpoint (grounded; question content only).
 - Institution endpoints and the Vidhyavruksha ERP integration API.
 
-Authentication: verifies the Supabase JWT on each request. Uses a service role connection for writes that must bypass RLS (e.g. scoring), with checks in code.
+Authentication: verifies the Supabase JWT on each request (asymmetric signing keys from the project's JWKS endpoint, cached). Uses a service role connection for writes that must bypass RLS (e.g. scoring), with checks in code.
 
 ### 2.4 services/pipeline (import worker)
 
@@ -128,7 +129,9 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 - Service role key used only inside `services/*`, never in apps.
 - Secrets: GCP Secret Manager for services; `.env` (git-ignored) locally.
 - AI calls send question content and anonymous answer data only.
-- Under-18 signup requires recorded parental consent (`consents` table).
+- Under-18 signup requires recorded parental consent (`consents` table), given by the parent telling the student a code sent to the parent's phone. Signup status is derived at the time of checking, so the requirement ends on the 18th birthday.
+- No behavioural tracking or targeted advertising for users under 18.
+- Date of birth is set once; corrections are staff-only and written to `audit_log`.
 - Audit log for publishing, editing answer keys and role changes.
 
 ## 6. Portability notes
@@ -162,4 +165,13 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-26 | App and syllabus Kannada text is AI-drafted and marked unreviewed until the translator approves it | Follows the rule that nothing AI-drafted is final without human review |
 | 2026-09-27 | `profiles.category` holds central (MCC) categories only; `state_category` (KEA) and a `pwd` flag are added before the college predictor | MCC and KEA use different category lists |
 | 2026-09-27 | Explicit grants per table; default privileges grant API roles nothing (all environments) | `prepvruksha-dev` has "Automatically expose new tables" off, local grants everything: relying on defaults broke dev and granted `TRUNCATE` (bypasses RLS) to app roles |
+| 2026-09-26 | Signup rules as Postgres functions (`public.*`, service role only), called by `services/api` through the Data API (PostgREST RPC); no direct database connection from the API | Atomic checks (limits, attempts, set-once DOB) in one transaction; no database password in Cloud Run; clients cannot call them |
+| 2026-09-26 | Signup status derived by `private.signup_status(user, as_of)`, never stored | Turning 18, new terms versions and withdrawals take effect without jobs or stale flags |
+| 2026-09-26 | Parental consent by parent OTP: the API generates the code and stores only an HMAC-SHA256 (keyed, bound to the user) in `parental_consent_requests`; limits 60 s / 5 per user per day / 5 per parent number per day / 10 min expiry / 5 attempts | Evidence of the parent's involvement without storing codes; limits cap SMS cost and brute force. `offline_form` stays for paper forms recorded by staff |
+| 2026-09-26 | Parent codes sent through an `OtpSender` interface; `LogOtpSender` (dev) and fixed-code test parent numbers; `APP_ENV=prod` refuses to start with either | The DLT-registered provider isn't chosen yet; development must not block on it, and prod must not ship without it |
+| 2026-09-26 | Date of birth set once (trigger), ages 13–30 at signup; staff correction via `public.correct_date_of_birth` with an `audit_log` entry | Otherwise a minor could change their age to skip parental consent |
+| 2026-09-26 | `audit_log`: one append-only table for sensitive changes (service role inserts, super admins read) | One place for DOB corrections now and publishing/role changes later |
+| 2026-09-26 | Every signup call returns the full signup state; the app router maps the status to a screen | One source of truth for routing; screens never compute eligibility |
+| 2026-09-26 | Date of birth typed as DD/MM/YYYY instead of the Material date picker | The picker's text entry follows US MM/DD order for English; scrolling back 16+ years is slow on phones |
+| 2026-09-26 | No behavioural tracking or targeted advertising for users under 18 (`CLAUDE.md` rule 12) | DPDP Act obligations for children's data |
 | 2026-09-26 | Local Supabase enables Twilio with placeholder values | Supabase Auth refuses phone sign-in without a provider, even for test numbers; replaced by the DLT-registered provider |

@@ -7,8 +7,10 @@ void main() {
       final config = AppConfig.fromMap({
         'SUPABASE_URL': 'http://127.0.0.1:54321',
         'SUPABASE_PUBLISHABLE_KEY': 'anon',
+        'API_URL': 'http://127.0.0.1:8000/',
       });
       expect(config.environment, 'dev');
+      expect(config.apiUrl, 'http://127.0.0.1:8000');
       expect(config.supabaseUrl, 'http://127.0.0.1:54321');
       expect(config.supabasePublishableKey, 'anon');
     });
@@ -20,6 +22,7 @@ void main() {
           isA<ConfigException>().having((e) => e.keys, 'keys', [
             'SUPABASE_URL',
             'SUPABASE_PUBLISHABLE_KEY',
+            'API_URL',
           ]),
         ),
       );
@@ -30,6 +33,7 @@ void main() {
         () => AppConfig.fromMap({
           'SUPABASE_URL': 'example.supabase.co',
           'SUPABASE_PUBLISHABLE_KEY': 'anon',
+          'API_URL': 'http://127.0.0.1:8000',
         }),
         throwsA(isA<ConfigException>()),
       );
