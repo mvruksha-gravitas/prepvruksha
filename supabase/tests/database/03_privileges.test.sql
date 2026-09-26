@@ -139,7 +139,10 @@ from (values
   ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text']),
   ('create_source_file', array['uuid', 'text', 'text', 'bigint', 'text', 'text', 'text', 'text', 'smallint']),
   ('complete_source_file_upload', array['uuid', 'uuid']),
-  ('set_source_file_rights', array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'smallint'])
+  ('set_source_file_rights', array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'smallint']),
+  ('get_staff_roles', array['uuid']),
+  ('get_source_file', array['uuid', 'uuid']),
+  ('list_source_files', array['uuid', 'text', 'text', 'integer'])
 ) as f (name, args)
 cross join unnest(array['anon', 'authenticated']) as r;
 select function_privs_are('public', f.name, f.args, 'service_role', '{EXECUTE}',
@@ -154,7 +157,10 @@ from (values
   ('correct_date_of_birth', array['uuid', 'uuid', 'date', 'text']),
   ('create_source_file', array['uuid', 'text', 'text', 'bigint', 'text', 'text', 'text', 'text', 'smallint']),
   ('complete_source_file_upload', array['uuid', 'uuid']),
-  ('set_source_file_rights', array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'smallint'])
+  ('set_source_file_rights', array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'smallint']),
+  ('get_staff_roles', array['uuid']),
+  ('get_source_file', array['uuid', 'uuid']),
+  ('list_source_files', array['uuid', 'text', 'text', 'integer'])
 ) as f (name, args);
 select function_privs_are('private', 'signup_status', array['uuid', 'date'], r, '{}',
   format('%s cannot execute private.signup_status', r))

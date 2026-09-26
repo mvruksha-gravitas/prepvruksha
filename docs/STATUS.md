@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026: slice 1 in progress (secret scanning committed locally); generator moved after launch; Biology sub-topic draft started
+Last updated: 26 Sep 2026: slice 1 in progress on PR #18 (secret scanning, database, API done; console next); Biology sub-topic draft merged (PR #17)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -181,7 +181,9 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - `source_files`, `import_jobs`, `import_items`; FK `questions.source_file_id`; private bucket `source-files` (PDF/Word, 100 MB, no client storage policies).
      - RLS: staff read only; `private.can_see_source_file` hides `reference_only` files (and, through them, their items) from reviewers; import jobs visible to content admins only.
      - Service-role functions (content admins and super admins): `create_source_file` (validates type, size, hash, rights; reuses an unfinished upload of the same content; `duplicate_file` otherwise; audited), `complete_source_file_upload` (object must exist in the bucket with the recorded size; marks `queued` and creates the import job in one transaction), `set_source_file_rights` (reason required; audited old/new; only `reference_only` once questions are published, which retires them, audited).
-     - Tests: pgTAP 330 (new `06_source_files.test.sql`, privileges matrix updated); lint clean; functions checked as `service_role`.
+     - Tests: pgTAP 348 (new `06_source_files.test.sql`, privileges matrix updated); lint clean; functions checked as `service_role`.
+     - Read functions (migration `20260930000200_source_file_reads.sql`): `get_staff_roles`, `get_source_file`, `list_source_files`, applying the same reference-only rule for the acting staff member (hidden files answer `file_not_found`).
+   - **API: done locally (not pushed).** Features `staff` (`GET /staff/me`; `current_staff` is the one dependency for staff endpoints, where a production sign-in rule can be added) and `content` (`GET /content/files?status=&rights_status=`, `POST /content/files` → file + signed upload URL, `POST /content/files/{id}/complete`, `PATCH /content/files/{id}/rights`); `shared/storage.py` creates signed upload URLs (`x-upsert` so a retried upload can replace a partial object). Writes need content admin or super admin (checked in the API and again in the database). CORS allows `PATCH`. API tests: 82. **Verified against local Supabase** (26 Sep): sign in as +91 99999 00002 (content admin) → create → complete before upload refused (`upload_missing`) → PUT to the signed URL → complete → `queued`; same file again → `duplicate_file`; +91 99999 00003 (reviewer) cannot see the reference-only file, cannot upload (403), and cannot read the object or table directly with their own token.
    - **Rights status (approved 26 Sep):**
      - `rights_status` required (`owned_licensed`, `official_pyq`, `reference_only`), no default, recorded in `audit_log` at upload.
      - `official_pyq` files must record the **exam and year** (e.g. NEET_UG 2023: `pyq_exam_id`, `pyq_year`), used later to label their questions (`source_type = 'pyq'`, `pyq_year`).
@@ -231,7 +233,7 @@ Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made 
 - **Deployer permissions:** `github-deployer` cannot change IAM. New public Cloud Run services, or new secrets, are added with the setup script (run by a person), not from GitHub Actions.
 - **Parent consent evidence:** `consents` row (parent name, phone, method, policy version, scope, timestamp, `request_id`) + the `parental_consent_requests` row (sent time, attempts, verified time). Raw codes are never stored or logged outside the dev `LogOtpSender`.
 - **Withdrawing parental consent** is possible from the student's own account for now. Parent accounts (`parent_links`) come later; the parent should be able to withdraw from their side too.
-- **Migration timestamps:** the latest migration is `20260930000100`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.
+- **Migration timestamps:** the latest migration is `20260930000200`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.
 - **Grants:** every new table or view needs explicit grants and an entry in `supabase/tests/database/03_privileges.test.sql`, or the tests fail. New `public` functions need explicit `revoke ... from public, anon, authenticated` (functions default to `EXECUTE` for `PUBLIC` unless revoked). Never grant `TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to API roles.
 - **Answer keys:** `question_options.is_correct` is unreadable by `anon`/`authenticated`, including staff. Client writes to options must not request the row back (PostgREST `Prefer: return=minimal`). The review console needs a server-side function (API or `security definer` with a staff check) to show the answer key. Practice feedback also needs a server-side check.
 - **`exam_reserved` questions** are never public; the SEO build must read only `public.seo_questions` (service role).

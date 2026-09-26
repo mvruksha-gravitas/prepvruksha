@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from prepvruksha_api.auth import current_user_id
 from prepvruksha_api.consent import ParentCodeIssuer, get_code_issuer
 from prepvruksha_api.main import app
-from prepvruksha_api.shared import RuleViolationError, get_rpc
+from prepvruksha_api.shared import RuleViolationError, get_rpc, get_storage
 
 USER = "aaaaaaaa-1111-1111-1111-111111111111"
 STATE = {
@@ -52,6 +52,20 @@ class FakeSender:
         self.sent.append((phone, code))
 
 
+class FakeStorage:
+    def __init__(self) -> None:
+        self.signed: list[tuple[str, str]] = []
+
+    def create_signed_upload_url(self, bucket: str, path: str) -> str:
+        self.signed.append((bucket, path))
+        return f"https://storage.test/upload/sign/{bucket}/{path}?token=t"
+
+
+@pytest.fixture
+def storage() -> FakeStorage:
+    return FakeStorage()
+
+
 @pytest.fixture
 def rpc() -> FakeRpc:
     return FakeRpc()
@@ -63,10 +77,11 @@ def sender() -> FakeSender:
 
 
 @pytest.fixture
-def client(rpc: FakeRpc, sender: FakeSender) -> Iterator[TestClient]:
+def client(rpc: FakeRpc, sender: FakeSender, storage: FakeStorage) -> Iterator[TestClient]:
     issuer = ParentCodeIssuer(b"test-key", sender, {"919999900006": "123456"})
     app.dependency_overrides[current_user_id] = lambda: USER
     app.dependency_overrides[get_rpc] = lambda: rpc
     app.dependency_overrides[get_code_issuer] = lambda: issuer
+    app.dependency_overrides[get_storage] = lambda: storage
     yield TestClient(app)
     app.dependency_overrides.clear()

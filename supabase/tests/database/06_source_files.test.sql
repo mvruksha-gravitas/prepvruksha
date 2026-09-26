@@ -252,5 +252,35 @@ select is((select count(*)::int from public.source_files), 0, 'a student sees no
 select is((select count(*)::int from public.import_items), 0, 'a student sees no items');
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- Read functions for the API (same visibility, by acting staff member)
+-- ---------------------------------------------------------------------------
+select is(public.get_staff_roles('dddddddd-6666-6666-6666-666666666666'), '{super_admin}'::text[],
+  'get_staff_roles: super admin');
+select is(public.get_staff_roles('aaaaaaaa-6666-6666-6666-666666666666'), '{}'::text[],
+  'get_staff_roles: a student has none');
+select is(jsonb_array_length(public.list_source_files('cccccccc-6666-6666-6666-666666666666')), 3,
+  'list: a content admin gets every file');
+select results_eq(
+  $$ select f ->> 'rights_status', f ->> 'pyq_exam_code', (f ->> 'pyq_year')::int
+     from jsonb_array_elements(public.list_source_files('bbbbbbbb-6666-6666-6666-666666666666')) f $$,
+  $$ values ('official_pyq', 'NEET_UG', 2023) $$,
+  'list: a reviewer gets only non-reference files, with the PYQ exam code');
+select is(jsonb_array_length(public.list_source_files('cccccccc-6666-6666-6666-666666666666',
+  p_rights_status => 'reference_only')), 2, 'list: filter by rights status');
+select is(jsonb_array_length(public.list_source_files('cccccccc-6666-6666-6666-666666666666',
+  p_status => 'queued')), 1, 'list: filter by status');
+select throws_ok(
+  $$ select public.list_source_files('aaaaaaaa-6666-6666-6666-666666666666') $$,
+  'P0001', 'not_authorised', 'list: a student is refused');
+select throws_ok(
+  format($$ select public.get_source_file('bbbbbbbb-6666-6666-6666-666666666666', %L) $$,
+         (select id from public.source_files where sha256 = repeat('c', 64))),
+  'P0001', 'file_not_found', 'get: a reference-only file looks missing to a reviewer');
+select is(
+  public.get_source_file('cccccccc-6666-6666-6666-666666666666',
+    (select id from public.source_files where sha256 = repeat('c', 64))) ->> 'original_name',
+  'Guide.docx', 'get: a content admin reads a reference-only file');
+
 select * from finish();
 rollback;
