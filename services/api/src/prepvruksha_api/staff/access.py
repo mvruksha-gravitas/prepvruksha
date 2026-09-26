@@ -25,7 +25,8 @@ class StaffMember(BaseModel):
         return role in self.roles or "super_admin" in self.roles
 
 
-def read_roles(rpc: RpcDep, user_id: Annotated[str, Depends(current_user_id)]) -> StaffMember:
+# The token is checked first, so unsigned requests never reach Supabase.
+def read_roles(user_id: Annotated[str, Depends(current_user_id)], rpc: RpcDep) -> StaffMember:
     roles = call_rule(rpc, "get_staff_roles", p_user_id=user_id) or []
     return StaffMember(user_id=user_id, roles=roles)
 
