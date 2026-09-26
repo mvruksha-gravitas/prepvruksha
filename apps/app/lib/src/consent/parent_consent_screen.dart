@@ -7,8 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ui_kit/ui_kit.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
-import '../widgets/language_button.dart';
+import '../auth/auth.dart';
+import 'consent_providers.dart';
+import '../profile/profile.dart';
 import 'signup_failure_text.dart';
 
 /// Signup step 3 (under 18 only): a parent or guardian gives consent by

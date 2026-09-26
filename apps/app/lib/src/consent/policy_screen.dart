@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
+import 'consent_providers.dart';
 
 /// Terms of use and privacy policy.
 ///

@@ -3,8 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ui_kit/ui_kit.dart';
 
-import '../l10n/generated/app_localizations.dart';
-import 'providers.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../profile/profile.dart';
 import 'router.dart';
 
 class PrepVrukshaApp extends ConsumerWidget {

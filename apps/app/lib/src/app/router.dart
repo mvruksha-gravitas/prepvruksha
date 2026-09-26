@@ -5,30 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'auth/otp_screen.dart';
-import 'auth/phone_screen.dart';
-import 'home/home_screen.dart';
-import 'providers.dart';
-import 'signup/parent_consent_screen.dart';
-import 'signup/policy_screen.dart';
-import 'signup/profile_screen.dart';
-import 'signup/signup_gate_screen.dart';
-import 'signup/terms_screen.dart';
-
-abstract final class Routes {
-  static const home = '/';
-  static const login = '/login';
-  static const otp = '/login/otp';
-
-  /// Loading the signup state, or an error with retry.
-  static const gate = '/start';
-  static const profile = '/signup/profile';
-  static const terms = '/signup/terms';
-  static const parent = '/signup/parent';
-
-  /// Placeholder terms and privacy text; open at any stage.
-  static const policy = '/policy';
-}
+import '../auth/auth.dart';
+import '../consent/consent.dart';
+import '../home/home.dart';
+import '../profile/profile.dart';
+import '../shared/shared.dart';
 
 /// Where a signed-in user must be, or null when signup is complete.
 @visibleForTesting

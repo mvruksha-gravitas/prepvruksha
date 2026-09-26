@@ -2,13 +2,14 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prepvruksha/src/app.dart';
-import 'package:prepvruksha/src/auth/otp_screen.dart';
-import 'package:prepvruksha/src/auth/phone_screen.dart';
-import 'package:prepvruksha/src/home/home_screen.dart';
-import 'package:prepvruksha/src/providers.dart';
 
-import 'fakes.dart';
+import 'package:prepvruksha/src/app/app.dart';
+import 'package:prepvruksha/src/auth/auth.dart';
+import 'package:prepvruksha/src/consent/consent.dart';
+import 'package:prepvruksha/src/home/home.dart';
+import 'package:prepvruksha/src/profile/profile.dart';
+
+import '../fakes.dart';
 
 void main() {
   late FakeAuthRepository auth;

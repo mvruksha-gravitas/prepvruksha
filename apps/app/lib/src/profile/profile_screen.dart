@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ui_kit/ui_kit.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
-import '../widgets/language_button.dart';
-import 'signup_failure_text.dart';
+import 'profile_providers.dart';
+import 'language_button.dart';
+import '../consent/consent.dart';
 
 /// Signup step 1: name, date of birth, exam year, category, language.
 class ProfileScreen extends ConsumerStatefulWidget {

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'src/app.dart';
-import 'src/config_error_app.dart';
-import 'src/providers.dart';
+import 'src/app/app.dart';
+import 'src/app/config_error_app.dart';
+import 'src/shared/shared.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

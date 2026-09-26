@@ -5,9 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:ui_kit/ui_kit.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
-import '../router.dart';
-import '../widgets/language_button.dart';
+import '../auth/auth.dart';
+import 'consent_providers.dart';
+import '../shared/shared.dart';
+import '../profile/profile.dart';
 import 'signup_failure_text.dart';
 
 /// Signup step 2: accept the current terms of use and privacy policy.

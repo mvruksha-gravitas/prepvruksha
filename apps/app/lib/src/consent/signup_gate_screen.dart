@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
+import '../auth/auth.dart';
+import 'consent_providers.dart';
 import 'signup_failure_text.dart';
 
 /// Shown while the signup state loads, or when it can't be loaded.

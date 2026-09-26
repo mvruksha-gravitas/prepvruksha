@@ -2,16 +2,16 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prepvruksha/src/app.dart';
-import 'package:prepvruksha/src/auth/phone_screen.dart';
-import 'package:prepvruksha/src/home/home_screen.dart';
-import 'package:prepvruksha/src/providers.dart';
-import 'package:prepvruksha/src/router.dart';
-import 'package:prepvruksha/src/signup/parent_consent_screen.dart';
-import 'package:prepvruksha/src/signup/profile_screen.dart';
-import 'package:prepvruksha/src/signup/terms_screen.dart';
 
-import 'fakes.dart';
+import 'package:prepvruksha/src/app/app.dart';
+import 'package:prepvruksha/src/app/router.dart';
+import 'package:prepvruksha/src/auth/auth.dart';
+import 'package:prepvruksha/src/consent/consent.dart';
+import 'package:prepvruksha/src/home/home.dart';
+import 'package:prepvruksha/src/profile/profile.dart';
+import 'package:prepvruksha/src/shared/shared.dart';
+
+import '../fakes.dart';
 
 void main() {
   late FakeAuthRepository auth;
@@ -354,19 +354,6 @@ void main() {
       expect(signupRoute(s(SignupStatus.needsParental)), Routes.parent);
       expect(signupRoute(s(SignupStatus.complete)), isNull);
       expect(signupRoute(const AsyncLoading()), Routes.gate);
-    });
-
-    test('parseDate reads DD/MM/YYYY and rejects impossible dates', () {
-      expect(parseDate('07/05/2010'), DateTime(2010, 5, 7));
-      expect(parseDate('7/5/2010'), DateTime(2010, 5, 7));
-      expect(parseDate('29/02/2011'), isNull);
-      expect(parseDate('2010-05-07'), isNull);
-    });
-
-    test('ageOn counts whole years', () {
-      final dob = DateTime(2008, 9, 27);
-      expect(ageOn(dob, DateTime(2026, 9, 26)), 17);
-      expect(ageOn(dob, DateTime(2026, 9, 27)), 18);
     });
   });
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../providers.dart';
+import 'profile_providers.dart';
 
 /// App-bar button that switches between English and Kannada.
 class LanguageButton extends ConsumerWidget {
