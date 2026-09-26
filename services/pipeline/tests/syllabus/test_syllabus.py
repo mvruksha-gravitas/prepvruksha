@@ -121,7 +121,11 @@ def test_seed_checks_chapters_and_counts() -> None:
 
 def test_the_biology_draft_parses() -> None:
     chapters = parse((DOCS / "biology.md").read_text(encoding="utf-8"))
-    assert len(chapters) == 32
+    # 32 current chapters and 6 removed ones (one placeholder topic each).
+    assert len(chapters) == 38
+    removed = [ch for ch in chapters if ch.topics[0].name == "Whole chapter"]
+    assert len(removed) == 6
+    assert all(len(ch.topics) == 1 and len(ch.topics[0].sub_topics) == 1 for ch in removed)
     assert {ch.subject_code for ch in chapters} == {"BOT", "ZOO"}
     assert not any(ch.expert_reviewed for ch in chapters)
     for ch in chapters:

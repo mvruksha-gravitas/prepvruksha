@@ -30,6 +30,29 @@ from public.topics t,
 where t.slug = v.topic;
 
 -- ---------------------------------------------------------------------------
+-- Seed: the Biology draft (supabase/seed/04_syllabus_biology.sql)
+-- ---------------------------------------------------------------------------
+select results_eq(
+  $$ select s.code, count(distinct st.chapter_id)::int, count(*)::int,
+            count(*) filter (where st.expert_reviewed)::int
+     from public.sub_topics st
+     join public.chapters c on c.id = st.chapter_id
+     join public.subjects s on s.id = c.subject_id
+     where s.code in ('BOT', 'ZOO')
+     group by s.code order by s.code $$,
+  $$ values ('BOT', 22, 201, 0), ('ZOO', 16, 160, 0) $$,
+  'seed: Biology draft loaded (every chapter, nothing expert-reviewed yet)');
+select is(
+  (select count(*)::int from public.sub_topics st join public.chapters c on c.id = st.chapter_id
+   where c.is_removed and not st.is_removed), 0,
+  'seed: everything under a removed chapter is removed');
+select is(
+  (select count(*)::int from public.chapters c join public.subjects s on s.id = c.subject_id
+   where s.code in ('BOT', 'ZOO')
+     and not exists (select 1 from public.sub_topics st where st.chapter_id = c.id)), 0,
+  'seed: every Biology chapter has at least one sub-topic');
+
+-- ---------------------------------------------------------------------------
 -- The tree
 -- ---------------------------------------------------------------------------
 select throws_ok(
@@ -45,7 +68,7 @@ select throws_ok(
   $$ insert into public.sub_topics (topic_id, chapter_id, slug, name_en)
      select id, chapter_id, 'Bad Slug', 'X' from public.topics where slug = 'newtons-laws' $$,
   '23514', null, 'slugs are lower-case words joined by hyphens');
-select is((select count(*)::int from public.sub_topics where is_removed), 1,
+select is((select count(*)::int from public.sub_topics where is_removed and slug = 'removed-bit'), 1,
   'removed sub-topics stay in the tree');
 
 -- ---------------------------------------------------------------------------
