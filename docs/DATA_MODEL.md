@@ -1,6 +1,6 @@
 # Data Model — PrepVruksha
 
-Version 0.2 · 26 September 2026
+Version 0.3 · 26 September 2026 (sub-topics, difficulty, rights status, similarity, generated questions: planned, not migrated yet)
 
 Core tables for Phase 1, plus the ones Phase 2–3 will need so the schema doesn't have to be
 reshaped later. All tables use `uuid` primary keys and `created_at` / `updated_at`.
@@ -31,6 +31,7 @@ Columns listed are the important ones, not exhaustive. Migrations are the source
 | `subjects` | `exam_id`, `code`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `sort_order` | Physics, Chemistry, Botany, Zoology. NCERT Biology chapters are split into Botany and Zoology following common NEET practice. |
 | `chapters` | `subject_id`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `class_level` (11/12, null for units like experimental skills), `ncert_ref`, `neet_weightage`, `is_removed`, `sort_order` | `is_removed` = no longer in the exam syllabus; kept for tagging older PYQs. |
 | `topics` | `chapter_id`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `sort_order` | |
+| `sub_topics` (planned) | `topic_id`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `ncert_ref`, `is_removed`, `expert_reviewed`, `sort_order` | The level questions are tagged at. Drafted from the official NEET syllabus and NCERT; `expert_reviewed` stays false until the subject expert approves it. |
 
 Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false for AI-drafted Kannada names until the translator approves them; seeds never overwrite a reviewed name.
 | `ncert_passages` (P1) | `chapter_id`, `book`, `page`, `para_no`, `text`, `embedding` (vector) | For NCERT linking and highlighted NCERT. |
@@ -39,10 +40,12 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `questions` | `exam_id`, `subject_id`, `chapter_id`, `format` (`single_mcq`, `assertion_reason`, `match_following`, `multi_statement`, `numerical`), `stem` (rich text / HTML with LaTeX), `stem_plain`, `language`, `translation_of` (fk → questions), `status` (`draft`, `review`, `published`, `retired`), `source_type` (`pyq`, `original`, `imported`), `pyq_year`, `source_file_id`, `source_page`, `slug`, `short_id`, `difficulty_b` (IRT, nullable), `discrimination_a`, `canonical_id` (for duplicates), `exam_reserved`, `embedding` (vector, added in the import slice), `published_at`, `published_by` | `stem_plain` for search and SEO. `exam_reserved` holds a question back for live mocks: never public (app or SEO), even when published. The public URL is `{slug}-{short_id}`, so `slug` alone is not unique. The subject must belong to the exam and the chapter to the subject (composite foreign keys). |
+| `questions` | `exam_id`, `subject_id`, `chapter_id`, `format` (`single_mcq`, `assertion_reason`, `match_following`, `multi_statement`, `numerical`), `stem` (rich text / HTML with LaTeX), `stem_plain`, `language`, `translation_of` (fk → questions), `status` (`draft`, `review`, `published`, `retired`), `source_type` (`pyq`, `original`, `imported`, planned `ai_generated`), `pyq_year`, `source_file_id`, `source_page`, `slug`, `short_id`, `sub_topic_id` (planned), `difficulty` (planned: `easy`/`moderate`/`difficult`), `difficulty_ai` (planned), `difficulty_source` (planned: `reviewer`, `calibrated`), `difficulty_b` (IRT, nullable), `discrimination_a`, `canonical_id` (for duplicates), `exam_reserved`, `embedding` (vector, added in the import slice), `published_at`, `published_by` | `stem_plain` for search and SEO. `exam_reserved` holds a question back for live mocks: never public (app or SEO), even when published. The public URL is `{slug}-{short_id}`, so `slug` alone is not unique. The subject must belong to the exam and the chapter to the subject (composite foreign keys). Planned: a published question needs a `sub_topic_id` inside its chapter and a reviewer-confirmed `difficulty`; the AI's suggestion stays in `difficulty_ai`; recalibration from attempts sets `difficulty_source = 'calibrated'`. |
 | `question_options` | `question_id`, `label` (A–D), `content`, `content_plain`, `is_correct`, `trap_type` (P1) | Correctness lives only here, and `is_correct` is not readable by app clients (column privilege). A published option question must have A–D with exactly one correct (checked at commit). Client writes must not ask for the row back (PostgREST `Prefer: return=minimal`); staff see the answer key through a server-side function. |
 | `question_answers_numeric` (P2) | `question_id`, `value`, `tolerance` | Only for numerical questions. |
-| `question_topics` | `question_id`, `topic_id` | Many-to-many. |
+| `question_topics` | `question_id`, `topic_id` | Many-to-many. Planned: dropped (empty) and replaced by `questions.sub_topic_id`; secondary sub-topic tags only if reviewers need them. |
+| `answer_checks` (planned, generator) | `question_id`, `kind` (`ai_proposed`, `ai_independent`, `expert_confirmed`), `answer` (option label or value), `model`, `actor_id`, `agrees` | For `ai_generated` questions. Publishing requires the two AI answers to agree (or the disagreement resolved by the expert) and an `expert_confirmed` row matching the current answer key; an answer-key edit voids the confirmation. |
+| `similarity_flags` (planned, slice 4) | `subject_type` (`import_item`, `question`), `subject_id`, `match_type` (`question`, `reference_item`), `match_id`, `score`, `status` (`open`, `accepted`, `dismissed`), `resolved_by` | One row per match above the threshold. Open flags block publishing until a reviewer resolves them. |
 | `question_ncert_links` (P1) | `question_id`, `ncert_passage_id`, `confidence`, `verified` | |
 | `explanations` | `question_id`, `language`, `content`, `status`, `ai_drafted` (bool), `reviewed_by` | |
 | `question_assets` | `question_id`, `storage_path`, `alt_text`, `position` | Images and diagrams. |
@@ -53,9 +56,10 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `source_files` | `storage_path`, `original_name`, `file_type`, `uploaded_by`, `rights_note`, `status` (`queued`, `extracting`, `parsing`, `needs_review`, `done`, `failed`), `error` | |
+| `source_files` | `storage_path`, `original_name`, `file_type`, `size_bytes`, `sha256` (unique), `uploaded_by`, `rights_status` (`owned_licensed`, `official_pyq`, `reference_only`), `rights_note`, `status` (`awaiting_upload`, `queued`, `extracting`, `parsing`, `needs_review`, `done`, `failed`), `error` | Rights status and note are required at upload (slice 1). Items from a `reference_only` file can never become published questions (checked in the database); they are embedded into the reference corpus. |
 | `import_jobs` | `source_file_id`, `step`, `status`, `attempts`, `locked_at`, `locked_by` | Queue polled with `FOR UPDATE SKIP LOCKED`. |
-| `import_items` | `source_file_id`, `page`, `raw_extract`, `parsed` (jsonb), `confidence`, `flags` (text[]: `answer_missing`, `possible_duplicate`, `broken_math`…), `duplicate_of`, `status` (`needs_review`, `approved`, `rejected`), `question_id` (after approval), `reviewed_by` | One row per parsed candidate question. |
+| `import_items` | `source_file_id`, `page`, `raw_extract`, `parsed` (jsonb), `confidence`, `flags` (text[]: `answer_missing`, `possible_duplicate`, `broken_math`…), `duplicate_of`, `status` (`needs_review`, `approved`, `rejected`), `question_id` (after approval), `reviewed_by` | One row per parsed candidate question. Planned: sub-topic and difficulty suggestions in `parsed`; `embedding` (slice 4). Items of `reference_only` files get status `reference` and are never approved. |
+| `generation_jobs` (planned, generator) | `sub_topic_id`, `difficulty`, `format`, `count`, `model`, `status`, `requested_by` | One request to the question generator; results are `questions` in `review` with `source_type = 'ai_generated'`. |
 
 ## 5. Tests and attempts
 
@@ -95,7 +99,8 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 |---|---|---|
 | Published questions, options, explanations | Everyone, except `exam_reserved` questions. `question_options.is_correct` is never readable by `anon`/`authenticated`: correctness comes only from server-side code (after submission for mocks, per question for practice, the SEO build, review-console functions) | Reviewers and content admins (only content admins delete) |
 | `seo_questions` view | Service role only (the SEO build): published and not `exam_reserved` | — |
-| Draft / review content, import tables | Reviewers, content admins | Reviewers, content admins, pipeline service |
+| Draft / review content, import tables, `answer_checks`, `similarity_flags`, `generation_jobs` | Reviewers, content admins | Service-role functions that check the staff role; pipeline / generator service |
+| Reference-only corpus (items of `reference_only` files) | Reviewers, content admins | Pipeline service only; never published, never in `seo_questions` |
 | Syllabus (`exams`, `exam_cycles` … `topics`) | Everyone | Content admins |
 | `staff_roles` | The user (own roles); super admins | Super admins |
 | `profiles` | The user; institution staff for their members (limited columns); linked parents per `visibility` | The user |
@@ -110,8 +115,21 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 
 - `questions (status, subject_id, chapter_id)`
 - `questions` GIN index on `to_tsvector('simple', stem_plain)` for full-text search
-- `questions` HNSW index on `embedding` (with the embedding column, import slice)
+- `questions` and `import_items` HNSW indexes on `embedding` (pipeline slice 4, before launch)
+- `questions (sub_topic_id, difficulty, status)` for coverage and test assembly
 - `questions (short_id)` unique
 - `attempts (user_id, test_id)`, `attempts (test_id, submitted_at)`
 - `attempt_answers (attempt_id)`, `attempt_answers (question_id)`
 - `import_jobs (status, created_at)`
+
+## 10. Planned migration: sub-topics and difficulty (before pipeline slice 2)
+
+One migration after slice 1, before the worker writes any `import_items`, so nothing has to be re-tagged (0 questions today):
+
+1. `sub_topics` table (grants, RLS: everyone reads, content admins write; privileges matrix + pgTAP).
+2. `questions.sub_topic_id` (FK, with a check that the sub-topic's topic belongs to `questions.chapter_id`), `difficulty`, `difficulty_ai`, `difficulty_source`; `source_type` gains `ai_generated`.
+3. Publish check: a published question has a `sub_topic_id` and a reviewer-set `difficulty`.
+4. Drop the empty `question_topics` table.
+5. Data: topics and sub-topics from the expert-reviewed draft tree. Because seed files run once per project, dev and prod get this data through a migration, not a changed seed file.
+
+The rights status comes with slice 1 (`source_files`). `answer_checks`, `similarity_flags`, embeddings and `generation_jobs` come with the slices that use them.

@@ -69,13 +69,15 @@ Authentication: verifies the Supabase JWT on each request (asymmetric signing ke
 Runs as Cloud Run Jobs, triggered by rows in the `import_jobs` table (Postgres `SELECT … FOR UPDATE SKIP LOCKED` queue — no separate queue service).
 
 Steps per file:
-1. **Extract** — Word: Pandoc → HTML with LaTeX math + images. Text PDF: PyMuPDF text + images per page. Scanned PDF: Mathpix PDF API.
-2. **Parse** — Claude API with a JSON schema: question, options, correct option (only if printed in the source), explanation, format, suggested tags, confidence, source page. Answer keys printed separately are matched in a second pass over the whole document.
+1. **Extract** — Word: Pandoc → HTML with LaTeX math + images. Text PDF: PyMuPDF text + images per page. Scanned PDF: page images read by Claude (no Mathpix).
+2. **Parse** — Claude API with a JSON schema: question, options, correct option (only if printed in the source), explanation, format, suggested tags, confidence, source page, suggested sub-topic and difficulty. Answer keys printed separately are matched in a second pass over the whole document.
 3. **Validate** — four options, one answer, no broken LaTeX, images resolved.
-4. **Deduplicate** — embedding similarity against existing questions; above threshold → flagged as possible duplicate.
+4. **Similarity** — embedding (open model inside the worker, data stays in India) compared against the bank and the reference-only corpus; above the threshold → `similarity_flags` for the reviewer. Items of `reference_only` files are only embedded into the reference corpus, never offered for publishing.
 5. **Store** — rows in `import_items` with status `needs_review`, linked to the source file and page.
 
-The AI never fills in a missing answer. If the source has no answer, the item is marked `answer_missing` for a human.
+**Question generator** (after pipeline slices 3 and 4): per sub-topic, difficulty and format, generates questions from chapter content into `questions` (`status = 'review'`, `source_type = 'ai_generated'`). A second call solves each question without seeing the proposed answer; both answers go to `answer_checks`, and a disagreement flags the question. A subject expert must confirm the answer before publishing. Every generated question also goes through the similarity step.
+
+The AI never fills in a missing answer of an imported question. If the source has no answer, the item is marked `answer_missing` for a human.
 
 Bulk AI work uses batch processing to lower cost.
 
@@ -192,3 +194,7 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-26 | Parse model and effort are settings (`PARSE_MODEL`, `PARSE_EFFORT`), default Opus 5 at `high`; `medium` becomes the default only if the real-file test shows 0 invented answers and no accuracy drop | Cost/quality trade-off decided on measurements, changed without code |
 | 2026-09-26 | No Mathpix: scanned pages go to Claude as page images | Slice 0: 24/24 scanned questions right, formulas included, at ~35% more per page than text |
 | 2026-09-26 | Figures are cut out of pages, numbered, sent with the page and linked to questions by number (`figure_numbers`); saved as assets | Diagrams were lost on text pages; the reviewer and the question need the exact figure |
+| 2026-09-26 | Syllabus gains a sub-topic level (subject → chapter → topic → sub-topic); questions are tagged at sub-topic level with difficulty easy / moderate / difficult (AI suggests, reviewer confirms, later recalibrated from attempts). Migration before pipeline slice 2 | Subject-teacher advice: sub-topic tags make coverage, practice and analytics precise; adding the level before any question exists avoids re-tagging |
+| 2026-09-26 | Rights status per source file (`owned_licensed`, `official_pyq`, `reference_only`) from slice 1; `reference_only` is never published (database check) and is used only for similarity checks and inspiration | Content rights are the main legal risk of the bank; the status must be recorded when the file arrives, not reconstructed later |
+| 2026-09-26 | Similarity checks (pipeline slice 4, embeddings) move before launch; every new question is compared against the bank and the reference-only corpus and flagged above a threshold | Guards against duplicates and against publishing text too close to material we do not own |
+| 2026-09-26 | Question generator (new module after slices 3 and 4); rule 1 refined: for `ai_generated` questions an AI-proposed answer needs an independent second AI solve to agree and explicit subject-expert confirmation | Fills thin sub-topics with original questions while keeping answer keys human-verified |

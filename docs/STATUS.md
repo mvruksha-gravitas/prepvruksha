@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026, end of conversation: slice 0 merged (PR #14); slice 1 plan approved, not started
+Last updated: 26 Sep 2026: subject-teacher advice recorded in the docs (sub-topics, difficulty, rights status, similarity before launch, question generator); slice 1 plan being updated, not started
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -9,7 +9,7 @@ Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
 
 **No real user signs up until all of these are done.** Until then only the test phone numbers are used.
 
-- [ ] **Real SMS sending (DLT-registered)** for both sign-in OTP (Supabase Auth) and parent consent codes (`services/api`, replacing `LogOtpSender`). The API refuses to start with `APP_ENV=prod` while the log sender or test parent numbers are configured.
+- [ ] **Login provider decided** (see "Login provider" under open decisions), then **real SMS sending (DLT-registered)** for both sign-in OTP (Supabase Auth) and parent consent codes (`services/api`, replacing `LogOtpSender`). The API refuses to start with `APP_ENV=prod` while the log sender or test parent numbers are configured.
 - [ ] **Final legal text from a lawyer:** terms of use, privacy policy and parental consent text. Publish it as a new `policy_versions` row (terms + parental) and replace the placeholder in `PolicyScreen` / the `policyPlaceholderBody` strings. A new terms version makes every student accept again.
 - [x] Signup and parental-consent flow (PR #3).
 - [ ] **Stronger sign-in for production staff** (reviewers, content admins, super admins), e.g. Google sign-in with 2-step verification, in addition to or instead of phone OTP. Staff can publish content and edit answer keys, so a phone OTP alone is not enough in prod. The console's auth is built to allow adding it.
@@ -124,23 +124,22 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **Remove the unused Supabase token** (security: a live credential nothing uses): delete the `github-deploy-dev` token (supabase.com/dashboard/account/tokens) and the secret (`gh secret delete SUPABASE_ACCESS_TOKEN --env dev --repo mvruksha-gravitas/prepvruksha`).
 - [ ] **Budget alerts** on GCP `prepvruksha-dev` and a spend cap on Supabase (Day 1 item in `ROADMAP.md`, not done yet).
 - [ ] **Anthropic key in Secret Manager** (`prepvruksha-dev`, Mumbai) before slice 2; today it is only in the local `services/pipeline/.env` (key rotated 26 Sep after it nearly leaked; see slice 1, secret scanning).
-- [ ] **Real NEET files test (you + me):** your real NEET files with the rights confirmed for each, and a hand-checked answer sheet. Then compare **Opus 5 at `medium` against `high`**; if `medium` has 0 invented answers and no drop in accuracy, make `medium` the default (`PARSE_EFFORT`).
+- [ ] **Real NEET files test (you + me):** your real NEET files with a rights status and note for each, and a hand-checked answer sheet. Then compare **Opus 5 at `medium` against `high`**; if `medium` has 0 invented answers and no drop in accuracy, make `medium` the default (`PARSE_EFFORT`).
 - [ ] **Keep exam dates on record:** NEET-UG 2027, 2028 and 2029 are tentative (first Sunday of May, `date_confirmed = false`). When NTA announces a date, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2030 sitting before 6 May 2029, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL (`supabase/README.md`).
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
 - [ ] **Account deletion and data erasure requests** (DPDP), a later slice: delete/anonymise user data on request, keep what the law requires (consent records), and decide how long withdrawn accounts are kept.
 - [ ] **Content review:**
-  - Subject expert: chapter list, removed chapters, Botany/Zoology split (`supabase/seed/01_neet_syllabus.sql`).
+  - Subject expert: chapter list, removed chapters, Botany/Zoology split (`supabase/seed/01_neet_syllabus.sql`), and the **draft NEET sub-topic tree** (drafted before slice 2; see section 4).
   - Kannada translator: syllabus names (`name_kn`) and app strings (`apps/app/lib/l10n/app_kn.arb`, tracked in `apps/app/lib/l10n/README.md`), now including the signup and consent screens.
 - [ ] Choose the DLT-registered SMS/WhatsApp OTP provider (launch blocker above; long-lead item in `ROADMAP.md`).
 
 ### Open decisions before launch
 
-- [ ] **Login provider: Firebase Auth vs Supabase Auth.** Not decided; no written comparison exists yet in the repo. Today the apps use Supabase Auth (phone OTP); its JWT drives RLS and the API, and users live in Postgres (`auth.users`). Points to compare (facts to be checked when the comparison is written):
-  - DLT-registered SMS for India: which provider each supports, and cost per OTP.
-  - Staff sign-in with Google and 2-step verification (launch blocker above).
-  - Data location: CLAUDE.md rule 9 (all data in Indian regions); where each stores user records.
-  - Portability: rule 8 (core data in Postgres); Firebase users would live outside Postgres.
-  - Integration and migration effort: Supabase accepts third-party auth JWTs, so RLS could stay; signup, the API's JWT check and the app's auth feature would change.
+- [ ] **Login provider: Firebase Phone Auth vs Supabase Auth + an Indian OTP provider.** Still undecided; research before launch. Today the apps use Supabase Auth (phone OTP); its JWT drives RLS and the API, and users live in Postgres (`auth.users`). Notes so far (26 Sep, to be checked in the research):
+  - **Firebase Phone Auth:** Google sends the SMS, which would avoid our own DLT sender and template registration. Parent verification could be a second Firebase phone sign-in on the parent's number, which also creates the parent account needed later (`parent_links`) and could replace our own parent codes.
+  - **Cost of Firebase:** reworking login: profiles (keyed to `auth.users` today), access rules (RLS reads Supabase's JWT; Supabase accepts third-party auth JWTs, but every policy and helper must be checked), the API's token check, and the tests. More Firebase lock-in (rule 8: users would live outside Postgres) and data location to confirm (rule 9).
+  - **Alternative:** keep Supabase Auth and add one Indian OTP provider that handles DLT (e.g. Twilio Verify, MSG91) for both sign-in and parent codes; nothing already built changes.
+  - Still to compare: cost per OTP, delivery rates in India, staff sign-in with Google and 2-step verification (launch blocker), and where each stores user records.
 - [ ] **Repository visibility:** the GitHub repository is **public**, while `ROADMAP.md` planned a private one. No secrets are in it (only project IDs, URLs and the public test numbers), but decide whether it should be private.
 
 ### Polish list
@@ -176,10 +175,10 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
      - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
      - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
-1. **Staff console and uploads** (no AI). **Plan approved 26 Sep; next to build.** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
+1. **Staff console and uploads** (no AI). **Plan approved 26 Sep; changes for the rights status proposed 26 Sep (awaiting approval); next to build.** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights status and rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
    - **Secret scanning first** (security, added after the Anthropic key nearly leaked on 26 Sep): gitleaks in CI on every PR and push, and a simple local pre-commit check if it stays simple.
    - **Database** (one migration):
-     - `source_files` (name, type `pdf`/`docx`, size, SHA-256, required rights note, uploaded by, status `awaiting_upload` → `queued` → … `done`/`failed`, error); **identical files rejected** (unique hash).
+     - `source_files` (name, type `pdf`/`docx`, size, SHA-256, required **rights status** (`owned_licensed`, `official_pyq`, `reference_only`) and rights note, uploaded by, status `awaiting_upload` → `queued` → … `done`/`failed`, error); **identical files rejected** (unique hash).
      - `import_jobs` (queue for the slice 2 worker) and `import_items` (as in `DATA_MODEL.md`); FK `questions.source_file_id`.
      - Private Storage bucket `source-files` (Mumbai): **PDF and Word only, 100 MB limit** (scanned books can be large). No client storage policies; files arrive only through signed upload URLs from the API.
      - Staff read; all writes through service-role functions that take the acting staff member and check the role (like `correct_date_of_birth`). **Upload: content admins and super admins; reviewers only review.** Privileges matrix and pgTAP tests.
@@ -188,23 +187,28 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
    - **Hosting:** new Firebase Hosting site `prepvruksha-dev-console` (create with `firebase hosting:sites:create prepvruksha-dev-console --project=prepvruksha-dev`), deployed by Deploy dev when `apps/console/**` changes; its origin added to the API's CORS setting.
    - **Dev staff:** after first sign-in, by SQL: +91 99999 00002 content admin, 00003 reviewer, 00004 super admin.
    - **Tests:** pgTAP (tables, RLS, functions, bucket), API pytest with a fake Storage, console widget tests with fakes, `core` client tests; an end-to-end upload on dev.
-2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`, including scanned PDFs (Claude reads the page images) and figures saved to Storage as question assets.
-3. **Review screen and publishing**: source page beside the parsed question, edit, approve (one transaction: question + options + `audit_log`), reject.
-4. **Duplicates and harder answer-key layouts** (no Mathpix). Embeddings: an open model inside the worker (data stays in India), comparison brought to this slice.
+   **Then, before slice 2: sub-topics and difficulty.** Draft the NEET sub-topic tree (subject → chapter → topic → sub-topic) from the official NEET syllabus and NCERT, for the subject expert to review; the migration in `DATA_MODEL.md` section 10.
+2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`, including scanned PDFs (Claude reads the page images) and figures saved to Storage as question assets. Suggests sub-topic and difficulty. Items of `reference_only` files are marked `reference` (corpus only).
+3. **Review screen and publishing**: source page beside the parsed question, edit, confirm sub-topic and difficulty, approve (one transaction: question + options + `audit_log`), reject. `reference_only` items cannot be approved.
+4. **Similarity and harder answer-key layouts** (no Mathpix), **before launch**. Embeddings: an open model inside the worker (data stays in India). Every new question compared by meaning against the bank and the reference-only corpus; `similarity_flags` above the threshold (set on real data) block publishing until resolved.
+5. **Question generator** (new module): questions per sub-topic, difficulty and format from chapter content into the review queue (`source_type = 'ai_generated'`); independent second AI solve must agree (else flagged); the subject expert confirms every answer; similarity check on each.
 
 Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made staff by SQL); the console's auth is built so a stronger method can be added for production staff (see launch blockers).
 
-### Build order
+### Build order (revised 26 Sep after the subject-teacher advice; weeks in `ROADMAP.md`)
 
-1. Import pipeline slices 1–3 (staff console and uploads → worker → review and publishing).
-2. CBT exam engine.
-3. Results and error notebook.
-4. Practice and search.
-5. Public SEO pages.
-6. Live mocks (and the pilot).
-7. Launch.
-
-Pipeline slice 4 (duplicates, harder answer-key layouts) comes **after launch**.
+1. Pipeline slice 1: secret scanning, staff console and uploads with rights status (week 2).
+2. Sub-topics and difficulty: draft tree + migration (week 3; expert review in parallel).
+3. Pipeline slice 2: worker (weeks 3–4).
+4. Pipeline slice 3: review and publishing (week 5).
+5. Pipeline slice 4: similarity checks, before launch (weeks 6–7).
+6. Question generator (weeks 7–8).
+7. CBT exam engine (weeks 9–12).
+8. Results and error notebook.
+9. Practice and search.
+10. Public SEO pages.
+11. Live mocks (and the pilot).
+12. Launch: late January 2027 (about 4 weeks later than planned). Moving the generator after the CBT engine would keep launch near early January.
 
 ## 5. Carry-over notes
 
@@ -221,7 +225,7 @@ Pipeline slice 4 (duplicates, harder answer-key layouts) comes **after launch**.
 - **`exam_reserved` questions** are never public; the SEO build must read only `public.seo_questions` (service role).
 - **Categories:** keep `profiles.category` for central (MCC) categories (`general`, `ews`, `obc_ncl`, `sc`, `st`); optional at signup, required only when using the college predictor. Before the predictor, add `state_category` (KEA categories) and a `pwd` flag.
 - **Audit log:** `audit_log` exists (date-of-birth corrections). Decide in the review-console slice whether publishing/answer-key edits use it or a separate `content_audit` table (as `DATA_MODEL.md` sketches); one table is simpler.
-- **Deferred schema:** `questions.embedding` + HNSW index (once the embedding model is chosen), FK `questions.source_file_id → source_files`, `trap_type`, topics seed, `neet_weightage` values.
+- **Deferred schema:** `questions.embedding` + HNSW index (slice 4), FK `questions.source_file_id → source_files` (slice 1), sub-topics and difficulty (before slice 2, `DATA_MODEL.md` section 10), `answer_checks` and `generation_jobs` (generator), `trap_type`, `neet_weightage` values.
 - **iOS flavors** (dev/prod bundle IDs) are not set up; needs a Mac. iOS is Phase 3.
 - **Git author** is fixed (`mVruksha`). The first commit on `main` (`bd933fc`) keeps the old placeholder author; that is fine and should not be rewritten.
 - **GitHub CLI (`gh`)** is installed and logged in; PRs are opened with `gh pr create`.
