@@ -55,6 +55,7 @@ Feature-first layout per "Modularity" in `CLAUDE.md`. No behaviour change.
 - **Boundary checks:** `import-linter` contracts in `services/api/pyproject.toml` (`uv run lint-imports`); `tool/check_import_boundaries.dart` for Dart (`dart run tool/check_import_boundaries.dart`). Both run in CI.
 - **CI:** jobs run only when their folders change (`dorny/paths-filter`); **"CI result"** always runs and is the single required check.
 - Tests: API 39, app 30 (unchanged counts).
+- **Consent config** (follow-up PR): parent-code settings (`OTP_HMAC_KEY`, `PARENT_OTP_SENDER`, `PARENT_OTP_TEST_CODES`) and the prod safety check moved to `consent/config.py`; `main.py` still refuses to start prod with the log sender or test parent numbers (tested by starting the app in a subprocess). API tests: 46.
 
 ## 2. Environments
 
@@ -77,7 +78,6 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 
 - [ ] **Click through the signup flow in Chrome** against local Supabase + local API: add `"API_URL": "http://127.0.0.1:8000"` to `config/local.json` (now required, or the app shows the config error screen), start the API, sign in with +91 99999 00001, complete the profile as a minor, parent number +91 99999 00006, code `123456`.
 - [ ] **Branch protection:** make "CI result" the only required status check on `main` (after this slice merges).
-- [ ] **Feature config split (API):** the parent-code settings (`OTP_HMAC_KEY`, `PARENT_OTP_SENDER`, `PARENT_OTP_TEST_CODES`) and their prod safety check still live in `shared/settings.py`; move them to `consent/config.py` with the prod check kept intact (see the modular-structure PR).
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
 - [ ] **Deploy `services/api` to Cloud Run (dev)** with secrets in Secret Manager (`SUPABASE_SECRET_KEY`, `OTP_HMAC_KEY`); set `API_URL` in `config/dev.json`. Until then the dev app can't get past signup (use `http://10.0.2.2:8000` for a local API from the emulator).
 - [ ] **Test phone numbers on `prepvruksha-dev`:** add +91 99999 00001–00005, code `123456`, under Auth > Providers > Phone, with a placeholder SMS provider (see `supabase/README.md`). Then log in from the app with `config/dev.json`.
@@ -101,6 +101,7 @@ Upload files in the console → extracted, parsed, tagged, de-duplicated → rev
 - **Children's data:** no behavioural tracking or targeted advertising for users under 18 (rule 12 in `CLAUDE.md`). Any analytics added later (Firebase Analytics, Crashlytics custom keys, marketing SDKs) must respect this; check minor status server-side, and default to off when it is unknown.
 - **Blocking access:** today only the app router enforces "signup complete". When student data tables arrive (attempts, practice, bookmarks), their RLS policies and API endpoints must also require `private.signup_status(user) = 'complete'`, so a withdrawn consent blocks data access, not just screens.
 - **Policy versions:** a new terms version sends every student back to the terms step. Parental consent is not re-asked on a new parental version (any active parental consent counts); decide when the lawyer's text arrives whether a new parental version needs fresh consent.
+- **`.env` and environment merge dicts:** pydantic-settings merges `PARENT_OTP_TEST_CODES` from a local `.env` with the environment variable instead of replacing it. Cloud Run images must not contain a `.env` (exclude it in `.dockerignore`).
 - **Parent consent evidence:** `consents` row (parent name, phone, method, policy version, scope, timestamp, `request_id`) + the `parental_consent_requests` row (sent time, attempts, verified time). Raw codes are never stored or logged outside the dev `LogOtpSender`.
 - **Withdrawing parental consent** is possible from the student's own account for now. Parent accounts (`parent_links`) come later; the parent should be able to withdraw from their side too.
 - **Migration timestamps:** the latest migration is `20260928000400`. New migrations must use later timestamps (the machine clock has been behind the migration dates; check what `supabase migration new` produces). Never edit a pushed migration; add a new one.

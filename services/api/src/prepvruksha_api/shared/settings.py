@@ -1,4 +1,6 @@
-"""Service configuration, read from the environment or a local `.env` file.
+"""Environment configuration shared by all features, read from the environment or `.env`.
+
+Feature-specific settings live in the feature (e.g. `consent/config.py`).
 
 In Cloud Run the values come from Secret Manager. Never commit a `.env`.
 """
@@ -22,15 +24,6 @@ class Settings(BaseSettings):
     # random localhost port.
     cors_origin_regex: str = r"^http://(localhost|127\.0\.0\.1)(:\d+)?$"
 
-    # Key for hashing parent consent codes (HMAC-SHA256). Only the hash is stored.
-    otp_hmac_key: SecretStr | None = None
-    # How parent consent codes are delivered. "log" writes the code to the
-    # service log (local/dev only) until the DLT-registered SMS provider is chosen.
-    parent_otp_sender: Literal["log"] = "log"
-    # Test parent numbers with fixed codes; nothing is sent to them. JSON, e.g.
-    # PARENT_OTP_TEST_CODES='{"919999900006": "123456"}'. Must be empty in prod.
-    parent_otp_test_codes: dict[str, str] = {}
-
     @property
     def jwks_url(self) -> str:
         return f"{self.supabase_url}/auth/v1/.well-known/jwks.json"
@@ -38,15 +31,6 @@ class Settings(BaseSettings):
     @property
     def jwt_issuer(self) -> str:
         return f"{self.supabase_url}/auth/v1"
-
-    def check_production_safety(self) -> None:
-        """Refuse to start prod with development-only OTP settings."""
-        if self.app_env != "prod":
-            return
-        if self.parent_otp_sender == "log":
-            raise RuntimeError("prod needs a real SMS sender for parent consent codes")
-        if self.parent_otp_test_codes:
-            raise RuntimeError("PARENT_OTP_TEST_CODES must be empty in prod")
 
 
 @lru_cache
