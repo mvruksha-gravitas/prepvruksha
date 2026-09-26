@@ -19,8 +19,8 @@ insert into public.staff_roles (user_id, role) values
   ('44444444-4444-4444-4444-444444444444', 'content_admin'),
   ('55555555-5555-5555-5555-555555555555', 'super_admin');
 
-insert into public.consents (user_id, type, policy_version, method)
-values ('11111111-1111-1111-1111-111111111111', 'terms', '2026-09', 'in_app');
+insert into public.consents (user_id, type, policy_version, scope, method)
+values ('11111111-1111-1111-1111-111111111111', 'terms', '2026-09', 'Test scope', 'in_app');
 
 -- One public, one draft, one published-but-reserved question.
 insert into public.questions
