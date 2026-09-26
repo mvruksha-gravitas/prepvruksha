@@ -1,20 +1,32 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:ui_kit/ui_kit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() => runApp(const ConsoleApp());
+import 'src/app/app.dart';
+import 'src/app/config_error_app.dart';
+import 'src/shared/shared.dart';
 
-/// Placeholder until the import pipeline + review console slice (weeks 2–4).
-/// Internal staff tool; localisation is added with its first real screens.
-class ConsoleApp extends StatelessWidget {
-  const ConsoleApp({super.key});
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PrepVruksha Console',
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      home: const Scaffold(body: Center(child: Text('PrepVruksha Console'))),
-    );
+  final AppConfig config;
+  try {
+    config = AppConfig.fromEnvironment();
+  } on ConfigException catch (e) {
+    runApp(ConfigErrorApp(error: e));
+    return;
   }
+
+  await Supabase.initialize(
+    url: config.supabaseUrl,
+    publishableKey: config.supabasePublishableKey,
+  );
+
+  runApp(
+    ProviderScope(
+      overrides: [appConfigProvider.overrideWithValue(config)],
+      child: const ConsoleApp(),
+    ),
+  );
 }

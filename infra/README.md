@@ -29,11 +29,12 @@ order. A failed step stops the steps after it.
 |---|---|
 | `supabase/**` | `supabase db push --include-seed` to `prepvruksha-dev`, then a check that no migration is left |
 | `services/api/**`, `infra/cloudrun/**` | API image → Artifact Registry → Cloud Run `prepvruksha-api`, then checks `/health` |
-| `apps/app/**`, `packages/core|ui_kit/**`, `pubspec.*`, `firebase.json` | `flutter build web` → Firebase Hosting `prepvruksha-dev.web.app` |
+| `apps/app/**`, `packages/core|ui_kit/**`, `pubspec.*`, `firebase.json` | `flutter build web` → Firebase Hosting target `app`: `prepvruksha-dev.web.app` |
+| `apps/console/**`, `packages/core|ui_kit/**`, `pubspec.*`, `firebase.json`, `.firebaserc` | `flutter build web` → Firebase Hosting target `console`: `prepvruksha-dev-console.web.app` |
 
-API and web both deploy when the workflow file changes. Run it by hand from
-Actions > Deploy dev > Run workflow: `both` (API + web), `all` (database, API,
-web), `database`, `api` or `web`.
+API, web and console all deploy when the workflow file changes. Run it by hand
+from Actions > Deploy dev > Run workflow: `both` (API + web + console), `all`
+(database, API, web, console), `database`, `api`, `web` or `console`.
 
 **Seed files run once per project.** `db push --include-seed` runs a seed
 file the first time it reaches a project. If the file changes later, the CLI
@@ -47,6 +48,7 @@ safe to re-run (`on conflict`) and must not overwrite what content admins edit.
 |---|---|
 | API URL | `https://prepvruksha-api-765197352192.asia-south1.run.app` |
 | Web app | `https://prepvruksha-dev.web.app` |
+| Staff console | `https://prepvruksha-dev-console.web.app` (not indexed: `X-Robots-Tag: noindex`) |
 | Image | `asia-south1-docker.pkg.dev/prepvruksha-dev/prepvruksha/api:<commit>` |
 | Runtime account | `api-runtime@` — reads the two secrets only |
 | Deployer account | `github-deployer@` — Cloud Run developer, Artifact Registry writer (repo `prepvruksha`), act as `api-runtime`, Firebase Hosting admin |
@@ -132,3 +134,34 @@ secret):
 | `DEV_SUPABASE_URL` | `https://hzpuxfgfheizghpipmew.supabase.co` |
 | `DEV_SUPABASE_PUBLISHABLE_KEY` | publishable key (`sb_publishable_…`) from the dashboard |
 | `DEV_API_URL` | the API URL above |
+
+### Staff console (one-time setup)
+
+The console is a second Firebase Hosting site in the same project. The site is
+created once by a person (the deployer can deploy to it but does not create
+it). `.firebaserc` maps the targets: `app` → `prepvruksha-dev`, `console` →
+`prepvruksha-dev-console`.
+
+```powershell
+npx --yes firebase-tools@14 login
+npx --yes firebase-tools@14 hosting:sites:create prepvruksha-dev-console --project=prepvruksha-dev
+```
+
+The API allows the console's origin through `CORS_ORIGIN_REGEX` in
+`cloudrun/api-dev.env.yaml`.
+
+**Dev staff** (test numbers only, rule 13): sign in to the console once with
+each number, then in the Supabase dashboard (prepvruksha-dev > SQL Editor):
+
+```sql
+insert into public.staff_roles (user_id, role)
+select id, r.role
+from auth.users u
+join (values ('919999900002', 'content_admin'),
+             ('919999900003', 'reviewer'),
+             ('919999900004', 'super_admin')) as r (phone, role)
+  on u.phone = r.phone
+on conflict do nothing;
+```
+
+A number that has not signed in yet gets no row; run it again after it has.

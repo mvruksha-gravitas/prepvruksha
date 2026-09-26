@@ -1,5 +1,17 @@
 {
   "projects": {
     "dev": "prepvruksha-dev"
+  },
+  "targets": {
+    "prepvruksha-dev": {
+      "hosting": {
+        "app": [
+          "prepvruksha-dev"
+        ],
+        "console": [
+          "prepvruksha-dev-console"
+        ]
+      }
+    }
   }
 }
