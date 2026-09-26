@@ -175,3 +175,5 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-26 | Date of birth typed as DD/MM/YYYY instead of the Material date picker | The picker's text entry follows US MM/DD order for English; scrolling back 16+ years is slow on phones |
 | 2026-09-26 | No behavioural tracking or targeted advertising for users under 18 (`CLAUDE.md` rule 12) | DPDP Act obligations for children's data |
 | 2026-09-26 | Local Supabase enables Twilio with placeholder values | Supabase Auth refuses phone sign-in without a provider, even for test numbers; replaced by the DLT-registered provider |
+| 2026-09-26 | Feature-first code layout (API, app, tests) with one public entry per feature; boundaries checked in CI (`import-linter`, `tool/check_import_boundaries.dart`) | Features stay independent as exam, practice and analytics are added; a feature can be changed or removed without touching another's internals |
+| 2026-09-26 | CI jobs run per area on path filters; one always-running "CI result" job is the required check | Faster PRs; branch protection cannot require jobs that are skipped |

@@ -115,6 +115,7 @@ Test phone numbers: +91 99999 00001–00005, code `123456` (no SMS sent).
 **Flutter** (pub workspace; `flutter pub get` at the root resolves everything)
 ```
 flutter analyze                     # whole workspace
+dart run tool/check_import_boundaries.dart   # feature import boundaries
 dart format apps packages
 cd packages/core && dart test
 cd apps/app && flutter test         # likewise apps/console, packages/ui_kit
@@ -130,7 +131,7 @@ App config needs `API_URL` (local API: `http://127.0.0.1:8000`). Android emulato
 ```
 cd services/api
 uv sync                             # copy .env.example to .env first (secret key, OTP_HMAC_KEY)
-uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run lint-imports && uv run pytest
 uv run uvicorn prepvruksha_api.main:app --reload
 ```
 
