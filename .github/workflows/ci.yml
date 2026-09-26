@@ -25,6 +25,7 @@ jobs:
     outputs:
       flutter: ${{ steps.filter.outputs.flutter }}
       database: ${{ steps.filter.outputs.database }}
+      api: ${{ steps.filter.outputs.api }}
       python: ${{ steps.python.outputs.services }}
     steps:
       - uses: actions/checkout@v4
@@ -132,6 +133,26 @@ jobs:
           fi
       - run: uv run pytest -q
 
+  api-image:
+    name: API image (docker build)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: docker build -t prepvruksha-api:ci services/api
+      - name: Starts and answers /health
+        run: |
+          docker run -d --name api -p 8080:8080 -e APP_ENV=dev prepvruksha-api:ci
+          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 localhost:8080/health
+      - name: Refuses to start in prod with development settings
+        run: |
+          if docker run --rm -e APP_ENV=prod prepvruksha-api:ci; then
+            echo "The image started in prod with the log OTP sender"; exit 1
+          fi
+
   database:
     name: Database (migrations + RLS tests)
     needs: changes
@@ -154,7 +175,7 @@ jobs:
   # passed; skipped jobs (unchanged areas) count as passing.
   result:
     name: CI result
-    needs: [changes, flutter, python, database]
+    needs: [changes, flutter, python, api-image, database]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2

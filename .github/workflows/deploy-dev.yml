@@ -1,0 +1,152 @@
+name: Deploy dev
+
+# Deploys to prepvruksha-dev after CI passes on main, per area: the API when
+# services/api changed, the web app when the app or its packages changed.
+# Run it by hand (Actions > Deploy dev > Run workflow) to redeploy either.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy
+        type: choice
+        options: [both, api, web]
+        default: both
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: prepvruksha-dev
+  REGION: asia-south1
+  SERVICE: prepvruksha-api
+  IMAGE: asia-south1-docker.pkg.dev/prepvruksha-dev/prepvruksha/api
+
+jobs:
+  changes:
+    name: Decide what to deploy
+    # Only after a successful CI run for a push to main (not for PRs).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.decide.outputs.sha }}
+      api: ${{ steps.decide.outputs.api }}
+      web: ${{ steps.decide.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
+      - name: Changed areas
+        id: decide
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            [ "$TARGET" != web ] && echo "api=true" >> "$GITHUB_OUTPUT"
+            [ "$TARGET" != api ] && echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Everything the merge brought into main (first parent = previous main).
+          changed=$(git diff --name-only HEAD^1 HEAD)
+          echo "$changed"
+          workflow='^\.github/workflows/deploy-dev\.yml$'
+          grep -qE "^services/api/|^infra/cloudrun/|$workflow" <<< "$changed" && echo "api=true" >> "$GITHUB_OUTPUT"
+          grep -qE "^apps/app/|^packages/(core|ui_kit)/|^pubspec\.(yaml|lock)$|^firebase\.json$|$workflow" <<< "$changed" && echo "web=true" >> "$GITHUB_OUTPUT"
+          true
+
+  api:
+    name: Deploy API (Cloud Run)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build and push the image
+        env:
+          TAG: ${{ env.IMAGE }}:${{ needs.changes.outputs.sha }}
+        run: |
+          gcloud auth configure-docker asia-south1-docker.pkg.dev --quiet
+          docker build -t "$TAG" services/api
+          docker push "$TAG"
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" --project="$PROJECT" --region="$REGION" \
+            --image="$IMAGE:${{ needs.changes.outputs.sha }}" \
+            --service-account="api-runtime@$PROJECT.iam.gserviceaccount.com" \
+            --env-vars-file=infra/cloudrun/api-dev.env.yaml \
+            --set-secrets=SUPABASE_SECRET_KEY=SUPABASE_SECRET_KEY:latest,OTP_HMAC_KEY=OTP_HMAC_KEY:latest \
+            --min-instances=0 --max-instances=2 --memory=512Mi --cpu=1 \
+            --quiet
+      - name: Health check
+        run: |
+          url=$(gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" --format='value(status.url)')
+          curl --fail --silent --show-error --retry 5 --retry-all-errors "$url/health" | tee /dev/stderr | grep -q '"env":"dev"'
+
+  web:
+    name: Deploy web app (Firebase Hosting)
+    needs: [changes, api]
+    # After the API when both changed; on its own when only the app changed.
+    if: >-
+      always() && needs.changes.outputs.web == 'true' &&
+      needs.api.result != 'failure' && needs.api.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+      - name: Get dependencies (workspace)
+        run: flutter pub get
+      - name: Write the dev app config
+        # Repository variables, not secrets: the publishable key and URLs are public.
+        env:
+          SUPABASE_URL: ${{ vars.DEV_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.DEV_SUPABASE_PUBLISHABLE_KEY }}
+          API_URL: ${{ vars.DEV_API_URL }}
+        run: |
+          jq -n '{APP_ENV: "dev", SUPABASE_URL: env.SUPABASE_URL,
+                  SUPABASE_PUBLISHABLE_KEY: env.SUPABASE_PUBLISHABLE_KEY, API_URL: env.API_URL}' \
+            > "$RUNNER_TEMP/dev.json"
+          jq -e 'all(.[]; . != "")' "$RUNNER_TEMP/dev.json" > /dev/null || {
+            echo "Set the DEV_* repository variables (see infra/README.md)"; exit 1; }
+      - name: Build
+        working-directory: apps/app
+        run: flutter build web --release --dart-define-from-file="$RUNNER_TEMP/dev.json"
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - name: Deploy to Firebase Hosting
+        run: npx --yes firebase-tools@14 deploy --only hosting --project="$PROJECT" --non-interactive
