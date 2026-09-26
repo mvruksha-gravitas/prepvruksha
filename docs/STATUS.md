@@ -145,6 +145,17 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 Plan approved 26 Sep 2026, in five slices, each end to end:
 
 0. **Command-line prototype** (`services/pipeline`, branch `feat/pipeline-prototype`, in progress). Parses a local folder of samples (`C:\prepvruksha-samples`, never committed; API key from a local `.env` only) with the Claude API into the fixed JSON format, and reports accuracy against a hand-checked answer sheet: per format, formulas, answers, cost per page. For scanned pages it tests Claude reading page images; Mathpix is decided from the results. No database or UI. `extract` and `parse` are reused by the slice 2 worker. How to run: `services/pipeline/README.md`.
+   - **First results (26 Sep, 3 NEET-style sample files, 72 questions: Word, text PDF, scanned PDF):**
+
+     | Setting | Found | Format right | Answers right | Answers invented | Cost | Per question |
+     |---|---|---|---|---|---|---|
+     | Opus 5, effort high | 72/72 | 72/72 | 72/72 (24 via the answer-key table) | 0 | $0.69 | $0.0096 |
+     | Sonnet 5, effort high | 72/72 | 71/72 (scanned C Q15 labelled `numerical`) | 72/72 | 0 | $0.29 | $0.0041 |
+
+     - Claude read the scanned pages as well as the text pages with both models ($0.064 a page on Opus, $0.026 on Sonnet), so Mathpix is not needed so far.
+     - Formula syntax was OK on 33/33 questions with formulas. Text-PDF subscripts (H2SO4) came back as LaTeX.
+     - The two models differ only in layout (match-the-following as a table vs lines; units in LaTeX vs plain).
+     - The sample is small and clean, so the model choice waits for the real files.
 1. **Staff console and uploads** (no AI): `source_files` / `import_jobs` / `import_items`, private Storage bucket, `content` API feature, console sign-in with a staff guard, upload with a rights note, file list.
 2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`. Scanned PDFs move here if slice 0 shows Claude reads them well enough.
 3. **Review screen and publishing**: source page beside the parsed question, edit, approve (one transaction: question + options + `audit_log`), reject.
