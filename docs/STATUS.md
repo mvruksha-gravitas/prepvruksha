@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026: slice 1 in progress on PR #18 (secret scanning, database, API done; console next); Biology sub-topic draft merged (PR #17)
+Last updated: 26 Sep 2026: slice 1 part 1 merged (PR #18: secret scanning, database, API) and deployed to dev; signup re-verified on dev; console next; Biology sub-topic draft merged (PR #17)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -105,7 +105,7 @@ The target exam years at signup come from data, not from a hard-coded month.
 | | Local | `prepvruksha-dev` |
 |---|---|---|
 | Supabase | `supabase start` (Docker Desktop). Test numbers in `config.toml` | Ref `hzpuxfgfheizghpipmew`, Mumbai. Linked from this repo |
-| Migrations | All 11 (via `supabase db reset`) | All 11 applied, up to `20260929000100` (checked 26 Sep) |
+| Migrations | All 13 (via `supabase db reset`) | All 13 applied, up to `20260930000200` (Deploy dev #14, 26 Sep) |
 | Seed | Applied on reset | Syllabus (100 chapters), the two `2026-10-draft` policy versions, NEET-UG exam cycles 2027–2029 (2028/2029 added by SQL) |
 | Users / staff | Test numbers only | 1 test user (+91 99999 00001, "Test Student", minor, signup complete), 0 staff roles, 0 questions (26 Sep) |
 | Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | Test numbers +91 99999 00001–00005 / `123456` (valid until 31 Dec 2027); placeholder Twilio values; OTP expiry 300 s. The test numbers are public: **no real student or personal data on dev** |
@@ -176,7 +176,7 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
      - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
      - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
-1. **Staff console and uploads** (no AI). **Plan approved 26 Sep, rights-status changes approved 26 Sep; in progress (branch `feat/slice1-uploads`).** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights status and rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
+1. **Staff console and uploads** (no AI). **Plan approved 26 Sep, rights-status changes approved 26 Sep; in progress.** Part 1 (secret scanning, database, API) merged in PR #18 on 26 Sep and deployed to dev (Deploy dev #14: database + API; web unchanged, skipped). After the deploy, signup was clicked through again on `prepvruksha-dev.web.app` (minor with parent consent; the 13–30 age check refused a 2020 birth date as expected). Next: console, hosting and the end-to-end upload on dev, in a new PR. Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights status and rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
    - **Secret scanning first** (security, added after the Anthropic key nearly leaked on 26 Sep): gitleaks in CI on every PR and push, and a simple local pre-commit check if it stays simple. **Done locally (not pushed):** CI job "Secret scan (gitleaks)" (pinned 8.30.1, checksum-verified, full history, part of "CI result") and `.githooks/pre-commit` (enable with `git config core.hooksPath .githooks`). History scan: 48 commits, no leaks.
    - **Database: done locally (not pushed)**, migration `20260930000100_source_files.sql`:
      - `source_files`, `import_jobs`, `import_items`; FK `questions.source_file_id`; private bucket `source-files` (PDF/Word, 100 MB, no client storage policies).
