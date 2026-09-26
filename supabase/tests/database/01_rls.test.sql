@@ -8,11 +8,11 @@ select no_plan();
 -- Fixtures (as postgres, which bypasses RLS)
 -- ---------------------------------------------------------------------------
 insert into auth.users (id, aud, role, phone) values
-  ('11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated', '919999900001'),
-  ('22222222-2222-2222-2222-222222222222', 'authenticated', 'authenticated', '919999900002'),
-  ('33333333-3333-3333-3333-333333333333', 'authenticated', 'authenticated', '919999900003'),
-  ('44444444-4444-4444-4444-444444444444', 'authenticated', 'authenticated', '919999900004'),
-  ('55555555-5555-5555-5555-555555555555', 'authenticated', 'authenticated', '919999900005');
+  ('11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated', '910000000101'),
+  ('22222222-2222-2222-2222-222222222222', 'authenticated', 'authenticated', '910000000102'),
+  ('33333333-3333-3333-3333-333333333333', 'authenticated', 'authenticated', '910000000103'),
+  ('44444444-4444-4444-4444-444444444444', 'authenticated', 'authenticated', '910000000104'),
+  ('55555555-5555-5555-5555-555555555555', 'authenticated', 'authenticated', '910000000105');
 
 insert into public.staff_roles (user_id, role) values
   ('33333333-3333-3333-3333-333333333333', 'reviewer'),

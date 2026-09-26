@@ -8,15 +8,15 @@ select no_plan();
 -- Profiles
 -- ---------------------------------------------------------------------------
 insert into auth.users (id, aud, role, phone)
-values ('11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated', '919999900001');
+values ('11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated', '910000000101');
 
 select is(
-  (select phone from public.profiles where id = '11111111-1111-1111-1111-111111111111'), '919999900001',
+  (select phone from public.profiles where id = '11111111-1111-1111-1111-111111111111'), '910000000101',
   'a profile is created with the phone for every new auth user');
 
-update auth.users set phone = '919999900009' where id = '11111111-1111-1111-1111-111111111111';
+update auth.users set phone = '910000000109' where id = '11111111-1111-1111-1111-111111111111';
 select is(
-  (select phone from public.profiles where id = '11111111-1111-1111-1111-111111111111'), '919999900009',
+  (select phone from public.profiles where id = '11111111-1111-1111-1111-111111111111'), '910000000109',
   'a phone change in auth is copied to the profile');
 
 select is(private.is_minor('11111111-1111-1111-1111-111111111111'), null::boolean,
@@ -52,7 +52,7 @@ select throws_ok(
   '23514', null, 'parental consent must name the parent and their phone');
 select lives_ok(
   $$ insert into public.consents (user_id, type, policy_version, method, granted_by_name, granted_by_phone)
-     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'parent_otp', 'Parent', '919999900010') $$,
+     values ('11111111-1111-1111-1111-111111111111', 'parental', '2026-09', 'parent_otp', 'Parent', '910000000110') $$,
   'parental consent with parent details is accepted');
 
 -- ---------------------------------------------------------------------------

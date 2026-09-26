@@ -148,3 +148,11 @@ Local development uses the Supabase CLI (local Postgres in Docker) and runs serv
 | 2026-09-25 | Static HTML for SEO pages | Flutter web is not reliably indexable; static pages are fast and portable |
 | 2026-09-25 | Separate product from Vidhyavruksha ERP | Different customers, student-owned accounts, isolate exam-day load |
 | 2026-09-25 | Postgres jobs table instead of a queue service | Fewer moving parts at current scale |
+| 2026-09-26 | `question_options.is_correct` not readable by app clients | Students could otherwise look up answers during a mock; correctness comes only from server-side code |
+| 2026-09-26 | `questions.exam_reserved` pool for live mocks; SEO reads only `seo_questions` | Published questions appear on public pages, so live-mock papers need questions that are never public |
+| 2026-09-26 | Store `date_of_birth`; derive minor status with `private.is_minor()` | A stored flag goes stale when a student turns 18 |
+| 2026-09-26 | RLS helpers in a `private` schema | Not exposed through the Data API as RPC endpoints |
+| 2026-09-26 | Allowed values as `text` + `CHECK`, not Postgres enums | Easier to extend in later migrations |
+| 2026-09-26 | Dart pub workspaces instead of Melos | Built into Dart; one fewer tool |
+| 2026-09-26 | App config via `--dart-define-from-file` (`config/*.json`, git-ignored); Android `dev`/`prod` flavors (`com.mvruksha.prepvruksha[.dev]`) | No keys in the repo; dev and prod builds install side by side |
+| 2026-09-26 | Local Supabase enables Twilio with placeholder values | Supabase Auth refuses phone sign-in without a provider, even for test numbers; replaced by the DLT-registered provider |
