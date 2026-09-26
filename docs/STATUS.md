@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026, after the first Deploy dev database run (seed files run once per project)
+Last updated: 26 Sep 2026, slice 0 (import prototype) done on branch `feat/pipeline-prototype`; slice 1 plan proposed
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -12,6 +12,7 @@ Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
 - [ ] **Real SMS sending (DLT-registered)** for both sign-in OTP (Supabase Auth) and parent consent codes (`services/api`, replacing `LogOtpSender`). The API refuses to start with `APP_ENV=prod` while the log sender or test parent numbers are configured.
 - [ ] **Final legal text from a lawyer:** terms of use, privacy policy and parental consent text. Publish it as a new `policy_versions` row (terms + parental) and replace the placeholder in `PolicyScreen` / the `policyPlaceholderBody` strings. A new terms version makes every student accept again.
 - [x] Signup and parental-consent flow (PR #3).
+- [ ] **Stronger sign-in for production staff** (reviewers, content admins, super admins), e.g. Google sign-in with 2-step verification, in addition to or instead of phone OTP. Staff can publish content and edit answer keys, so a phone OTP alone is not enough in prod. The console's auth is built to allow adding it.
 
 ## 1. Done
 
@@ -136,11 +137,36 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] Log in through the running app on the Android emulator. Emulator + local Supabase needs `http://10.0.2.2:54321`.
 - [ ] Build the `prod` flavor once, and a release build (needs a signing key; never commit it).
 - [ ] Choose the DLT-registered SMS/WhatsApp OTP provider (launch blocker above; long-lead item in `ROADMAP.md`).
+- [ ] **Real NEET files test (you + me):** your real NEET files with the rights confirmed for each, and a hand-checked answer sheet. Then compare **Opus 5 at `medium` against `high`**; if `medium` has 0 invented answers and no drop in accuracy, make `medium` the default (`PARSE_EFFORT`).
+- [ ] **Anthropic key in Secret Manager** (`prepvruksha-dev`, Mumbai) before slice 2; today it is only in the local `services/pipeline/.env`.
 - [ ] **Budget alerts** on GCP `prepvruksha-dev` and a spend cap on Supabase (Day 1 item in `ROADMAP.md`, not done yet).
 
-## 4. Next slice: import pipeline + review console (Weeks 2–4 in `ROADMAP.md`)
+## 4. Current slice: import pipeline + review console (Weeks 2–4 in `ROADMAP.md`)
 
-Upload files in the console → extracted, parsed, tagged, de-duplicated → review screen with the source page beside the parsed question → approve publishes. Test on 10 of the messiest files first and measure accuracy. Includes the `content_audit`/`audit_log` entries for publishing and answer-key edits, and the server-side function that shows reviewers the answer key. Propose a plan first, per `CLAUDE.md`.
+Plan approved 26 Sep 2026, in five slices, each end to end:
+
+0. **Command-line prototype** (`services/pipeline`, branch `feat/pipeline-prototype`, done). Parses a local folder of samples (`C:\prepvruksha-samples`, never committed; API key from a local `.env` only) with the Claude API into the fixed JSON format, and reports accuracy against a hand-checked answer sheet: per format, formulas, answers, cost per page. For scanned pages it tests Claude reading page images; Mathpix is decided from the results. No database or UI. `extract` and `parse` are reused by the slice 2 worker. How to run: `services/pipeline/README.md`.
+   - **First results (26 Sep, 3 NEET-style sample files, 72 questions: Word, text PDF, scanned PDF):**
+
+     | Setting | Found | Format right | Answers right | Answers invented | Cost | Per question |
+     |---|---|---|---|---|---|---|
+     | Opus 5, effort high | 72/72 | 72/72 | 72/72 (24 via the answer-key table) | 0 | $0.69 | $0.0096 |
+     | Sonnet 5, effort high | 72/72 | 71/72 (scanned C Q15 labelled `numerical`) | 72/72 | 0 | $0.29 | $0.0041 |
+
+     - Claude read the scanned pages as well as the text pages with both models ($0.064 a page on Opus, $0.026 on Sonnet), so Mathpix is not needed so far.
+     - Formula syntax was OK on 33/33 questions with formulas. Text-PDF subscripts (H2SO4) came back as LaTeX.
+     - The two models differ only in layout (match-the-following as a table vs lines; units in LaTeX vs plain).
+     - Set A Q22's broken options ("and (d) only") were a flaw in the sample file itself, not the pipeline; both models flagged it `unclear_text`.
+   - **Decisions (26 Sep):**
+     - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
+     - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
+     - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
+1. **Staff console and uploads** (no AI): `source_files` / `import_jobs` / `import_items`, private Storage bucket, `content` API feature, console sign-in with a staff guard, upload with a rights note, file list.
+2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`, including scanned PDFs (Claude reads the page images) and figures saved to Storage as question assets.
+3. **Review screen and publishing**: source page beside the parsed question, edit, approve (one transaction: question + options + `audit_log`), reject.
+4. **Duplicates and harder answer-key layouts** (no Mathpix). Embeddings: an open model inside the worker (data stays in India), comparison brought to this slice.
+
+Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made staff by SQL); the console's auth is built so a stronger method can be added for production staff (see launch blockers).
 
 ## 5. Carry-over notes
 

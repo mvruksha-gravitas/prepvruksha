@@ -4,14 +4,21 @@ version = "0.1.0"
 description = "PrepVruksha import worker: documents to review-ready questions."
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "anthropic>=1.8.0",
     "pydantic-settings>=2.6",
+    "pymupdf>=1.28.2",
+    "pypandoc-binary>=1.17",
 ]
+
+[project.scripts]
+prepvruksha-pipeline = "prepvruksha_pipeline.cli:main"
 
 [dependency-groups]
 dev = [
     "pytest>=8.3",
     "mypy>=1.13",
     "ruff>=0.8",
+    "import-linter>=2.15",
 ]
 
 [build-system]
@@ -37,5 +44,57 @@ python_version = "3.12"
 strict = true
 files = ["src", "tests"]
 
+[[tool.mypy.overrides]]
+module = ["pymupdf", "pymupdf.*", "pypandoc"]
+ignore_missing_imports = true
+
+# PyMuPDF has no type hints.
+[[tool.mypy.overrides]]
+module = ["prepvruksha_pipeline.extract.pdf", "tests.extract.*"]
+disallow_untyped_calls = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Feature boundaries (see "Modularity" in CLAUDE.md): features use each other
+# only through their public entry (`prepvruksha_pipeline.<feature>`).
+[tool.importlinter]
+root_package = "prepvruksha_pipeline"
+
+[[tool.importlinter.contracts]]
+name = "Features use each other only through their public entry"
+type = "forbidden"
+source_modules = [
+    "prepvruksha_pipeline.extract",
+    "prepvruksha_pipeline.parse",
+    "prepvruksha_pipeline.evaluate",
+]
+forbidden_modules = [
+    "prepvruksha_pipeline.extract.**",
+    "prepvruksha_pipeline.parse.**",
+    "prepvruksha_pipeline.evaluate.**",
+]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "prepvruksha_pipeline.extract.** -> prepvruksha_pipeline.extract.**",
+    "prepvruksha_pipeline.parse.** -> prepvruksha_pipeline.parse.**",
+    "prepvruksha_pipeline.evaluate.** -> prepvruksha_pipeline.evaluate.**",
+]
+
+[[tool.importlinter.contracts]]
+name = "Shared code does not depend on features"
+type = "forbidden"
+source_modules = ["prepvruksha_pipeline.shared"]
+forbidden_modules = [
+    "prepvruksha_pipeline.extract",
+    "prepvruksha_pipeline.parse",
+    "prepvruksha_pipeline.evaluate",
+    "prepvruksha_pipeline.cli",
+]
+
+[[tool.importlinter.contracts]]
+name = "Extraction and parsing do not depend on evaluation"
+type = "forbidden"
+source_modules = ["prepvruksha_pipeline.extract", "prepvruksha_pipeline.parse"]
+forbidden_modules = ["prepvruksha_pipeline.evaluate", "prepvruksha_pipeline.cli"]
