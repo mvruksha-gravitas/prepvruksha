@@ -46,26 +46,27 @@ Don't set up every service in advance. Add each one when the slice that needs it
 
 ## 3. Phase 1 — Launch (October 2026 → January 2027)
 
-Revised 26 Sep 2026 after the subject-teacher advice. Week 2 starts 28 Sep 2026.
+Revised 26 Sep 2026 after the subject-teacher advice; the question generator moved after the CBT engine (post-launch) so launch stays near early January. Week 2 starts 28 Sep 2026.
 
 | Weeks | Slice | Done when |
 |---|---|---|
 | 1 ✔ | **Foundations** | Repo, CI (lint + tests), local Supabase, first migrations (profiles, syllabus, questions, options), seed subjects/chapters, phone OTP login working in the app |
 | 2 | **Pipeline 1: staff console + uploads** | Secret scanning in CI; staff upload a PDF/Word file with a rights status and note; listed as `queued` with an import job |
-| 3 | **Sub-topics + difficulty** | Migration (DATA_MODEL section 10); draft NEET sub-topic tree seeded as unreviewed; subject expert reviewing in parallel |
+| 2–3 (parallel) | **Sub-topic tree draft** | One subject at a time (Biology first) for the subject expert; separate docs/seed PR |
+| 3 | **Sub-topics + difficulty migration** | Migration (DATA_MODEL section 10); reviewed or draft tree loaded as unreviewed |
 | 3–4 | **Pipeline 2: worker** | Files parsed into `import_items` on Cloud Run, incl. scanned pages and figures; AI suggests sub-topic and difficulty |
 | 5 | **Pipeline 3: review + publishing** | Source page beside the parsed question; reviewer confirms sub-topic, difficulty and answer; approve publishes; `reference_only` items cannot be published |
 | 6–7 | **Pipeline 4: similarity (before launch)** | Embeddings for the bank and the reference-only corpus; every new question compared and flagged above the threshold; harder answer-key layouts |
-| 7–8 | **Question generator** | Questions per sub-topic, difficulty and format into review; independent second solve; expert answer confirmation; similarity check |
-| 3–16 (ongoing) | **Content** | Reviewers publishing continuously from week 5; target a few thousand reviewed questions by launch, covering every chapter |
-| 9–12 | **CBT exam engine** | NTA-style interface, exam-day sequence, pattern from `exam_patterns`, local saving + batched sync, resume after disconnect, server-side scoring. Load-tested at 5,000 simulated students |
-| 12–13 | **Results v1 + error notebook** | Score, subject breakdown, platform rank/percentile, time analysis, chapter/sub-topic heatmap; wrong answers collected with mistake reasons |
-| 13–14 | **Practice + search** | Chapter, sub-topic and difficulty-based tests, PYQ papers, custom tests; keyword search over published questions |
-| 14–15 | **Public SEO pages** | Static question pages, hub pages, sitemaps deployed nightly; Search Console live |
-| 15–16 | **Live mocks + pilot** | Scheduled all-India mock with scale-up routine; 2–3 pilot PU colleges onboarded manually; bug-fix buffer |
-| Late Jan 2027 (week 17) | **Launch** | Weekly live mocks begin; Android app on Play Store; web app live |
+| 3–15 (ongoing) | **Content** | Reviewers publishing continuously from week 5; target a few thousand reviewed questions by launch, covering every chapter |
+| 7–10 | **CBT exam engine** | NTA-style interface, exam-day sequence, pattern from `exam_patterns`, local saving + batched sync, resume after disconnect, server-side scoring. Load-tested at 5,000 simulated students |
+| 11 | **Results v1 + error notebook** | Score, subject breakdown, platform rank/percentile, time analysis, chapter/sub-topic heatmap; wrong answers collected with mistake reasons |
+| 12 | **Practice + search** | Chapter, sub-topic and difficulty-based tests, PYQ papers, custom tests; keyword search over published questions |
+| 13 | **Public SEO pages** | Static question pages, hub pages, sitemaps deployed nightly; Search Console live |
+| 14–15 | **Live mocks + pilot** | Scheduled all-India mock with scale-up routine; 2–3 pilot PU colleges onboarded manually; bug-fix buffer |
+| Early–mid Jan 2027 (week 15–16) | **Launch** | Weekly live mocks begin; Android app on Play Store; web app live |
+| After launch (Jan–Feb 2027) | **Question generator** | Questions per sub-topic, difficulty and format into review; independent second solve; expert answer confirmation; similarity check |
 
-**Timeline impact:** about **+4 weeks** of build (sub-topics ~1 week, similarity moved before launch ~1.5 weeks, generator ~2 weeks, minus overlap). The CBT engine moves from weeks 5–8 to 9–12 (ready around 20 Dec instead of mid-Nov), and launch from early January to **late January 2027**, leaving about 14 weekly mocks before a May 2027 exam instead of about 18. If early January must hold, the lever is to build the generator after the CBT engine (weeks 13–14), which brings the engine back to weeks 7–10 and launch to about week 15.
+**Timeline impact:** about **+1.5–2 weeks** before launch (sub-topics, similarity moved before launch), absorbed by tighter results/practice/SEO slices; the CBT engine is ready around 6 Dec (was mid-Nov) and launch stays early to mid January 2027. The generator (~2 weeks) comes after launch; until then the bank grows from imported, reviewed questions only.
 
 Done by 26 Sep 2026 (see `STATUS.md`): Foundations; signup and parental consent (DPDP); feature-first code layout with boundary checks; dev deploy pipeline; target exam years from `exam_cycles` data. Next: pipeline slice 1 (staff console and uploads, with rights status), starting with secret scanning.
 

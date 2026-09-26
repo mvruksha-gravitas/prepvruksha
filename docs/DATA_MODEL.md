@@ -56,7 +56,7 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `source_files` | `storage_path`, `original_name`, `file_type`, `size_bytes`, `sha256` (unique), `uploaded_by`, `rights_status` (`owned_licensed`, `official_pyq`, `reference_only`), `rights_note`, `status` (`awaiting_upload`, `queued`, `extracting`, `parsing`, `needs_review`, `done`, `failed`), `error` | Rights status and note are required at upload (slice 1). Items from a `reference_only` file can never become published questions (checked in the database); they are embedded into the reference corpus. |
+| `source_files` | `storage_path`, `original_name`, `file_type`, `size_bytes`, `sha256` (unique), `uploaded_by`, `rights_status` (`owned_licensed`, `official_pyq`, `reference_only`), `rights_note`, `pyq_exam_id` + `pyq_year` (required for `official_pyq`, else null), `status` (`awaiting_upload`, `queued`, `extracting`, `parsing`, `needs_review`, `done`, `failed`), `error` | Rights status and note are required at upload (slice 1). Items from a `reference_only` file can never become published questions (checked in the database); they are embedded into the reference corpus. |
 | `import_jobs` | `source_file_id`, `step`, `status`, `attempts`, `locked_at`, `locked_by` | Queue polled with `FOR UPDATE SKIP LOCKED`. |
 | `import_items` | `source_file_id`, `page`, `raw_extract`, `parsed` (jsonb), `confidence`, `flags` (text[]: `answer_missing`, `possible_duplicate`, `broken_math`…), `duplicate_of`, `status` (`needs_review`, `approved`, `rejected`), `question_id` (after approval), `reviewed_by` | One row per parsed candidate question. Planned: sub-topic and difficulty suggestions in `parsed`; `embedding` (slice 4). Items of `reference_only` files get status `reference` and are never approved. |
 | `generation_jobs` (planned, generator) | `sub_topic_id`, `difficulty`, `format`, `count`, `model`, `status`, `requested_by` | One request to the question generator; results are `questions` in `review` with `source_type = 'ai_generated'`. |
@@ -100,7 +100,7 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 | Published questions, options, explanations | Everyone, except `exam_reserved` questions. `question_options.is_correct` is never readable by `anon`/`authenticated`: correctness comes only from server-side code (after submission for mocks, per question for practice, the SEO build, review-console functions) | Reviewers and content admins (only content admins delete) |
 | `seo_questions` view | Service role only (the SEO build): published and not `exam_reserved` | — |
 | Draft / review content, import tables, `answer_checks`, `similarity_flags`, `generation_jobs` | Reviewers, content admins | Service-role functions that check the staff role; pipeline / generator service |
-| Reference-only corpus (items of `reference_only` files) | Reviewers, content admins | Pipeline service only; never published, never in `seo_questions` |
+| Reference-only files and their items | Content admins and super admins only (not reviewers) | Pipeline service only; never published, never in `seo_questions` |
 | Syllabus (`exams`, `exam_cycles` … `topics`) | Everyone | Content admins |
 | `staff_roles` | The user (own roles); super admins | Super admins |
 | `profiles` | The user; institution staff for their members (limited columns); linked parents per `visibility` | The user |

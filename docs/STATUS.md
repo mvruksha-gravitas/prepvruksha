@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: 26 Sep 2026: subject-teacher advice recorded in the docs (sub-topics, difficulty, rights status, similarity before launch, question generator); slice 1 plan being updated, not started
+Last updated: 26 Sep 2026: slice 1 in progress (secret scanning committed locally); generator moved after launch; Biology sub-topic draft started
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -175,8 +175,14 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
      - **Model and effort are settings** (`PARSE_MODEL`, `PARSE_EFFORT`), default **Opus 5 at `high`**. No more model comparisons on these samples.
      - **Mathpix is not needed:** Claude reads scanned pages directly; scanned-PDF handling moves into slice 2.
      - **Figures:** a text PDF page with embedded images now goes as text plus the page image, and each figure is cut out, numbered and saved as an asset linked to its question (`figure_numbers`); Word images the same way. Re-run of Set B page 2: Q13 linked to its graph, no longer `figure_needed` (page cost $0.071 vs $0.054 as text only). Vector drawings (not embedded images) are not cut out yet; the page image still carries them.
-1. **Staff console and uploads** (no AI). **Plan approved 26 Sep; changes for the rights status proposed 26 Sep (awaiting approval); next to build.** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights status and rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
-   - **Secret scanning first** (security, added after the Anthropic key nearly leaked on 26 Sep): gitleaks in CI on every PR and push, and a simple local pre-commit check if it stays simple.
+1. **Staff console and uploads** (no AI). **Plan approved 26 Sep, rights-status changes approved 26 Sep; in progress (branch `feat/slice1-uploads`).** Done when a staff member signs in to the console on dev, uploads a PDF or Word file with a rights status and rights note, and sees it listed as `queued` with an import job waiting for the slice 2 worker.
+   - **Secret scanning first** (security, added after the Anthropic key nearly leaked on 26 Sep): gitleaks in CI on every PR and push, and a simple local pre-commit check if it stays simple. **Done locally (not pushed):** CI job "Secret scan (gitleaks)" (pinned 8.30.1, checksum-verified, full history, part of "CI result") and `.githooks/pre-commit` (enable with `git config core.hooksPath .githooks`). History scan: 48 commits, no leaks.
+   - **Rights status (approved 26 Sep):**
+     - `rights_status` required (`owned_licensed`, `official_pyq`, `reference_only`), no default, recorded in `audit_log` at upload.
+     - `official_pyq` files must record the **exam and year** (e.g. NEET_UG 2023: `pyq_exam_id`, `pyq_year`), used later to label their questions (`source_type = 'pyq'`, `pyq_year`).
+     - **`reference_only` files and their items are visible only to content admins and super admins**, not reviewers (RLS + API).
+     - Content admins and super admins can change the status later (audited: old, new, reason); once a file has published questions it can only move to `reference_only`. The publish block for `reference_only` comes in slice 3.
+     - API: `rights_status` (and PYQ exam/year) on `POST /content/files`; returned and filterable on `GET /content/files`; `PATCH /content/files/{id}/rights`. Console: required choice with one-line explanations, exam/year fields for PYQ, badge and filter in the list.
    - **Database** (one migration):
      - `source_files` (name, type `pdf`/`docx`, size, SHA-256, required **rights status** (`owned_licensed`, `official_pyq`, `reference_only`) and rights note, uploaded by, status `awaiting_upload` → `queued` → … `done`/`failed`, error); **identical files rejected** (unique hash).
      - `import_jobs` (queue for the slice 2 worker) and `import_items` (as in `DATA_MODEL.md`); FK `questions.source_file_id`.
@@ -191,24 +197,25 @@ Plan approved 26 Sep 2026, in five slices, each end to end:
 2. **Worker**: extraction + parsing as a Cloud Run Job started by the API, writing `import_items`, including scanned PDFs (Claude reads the page images) and figures saved to Storage as question assets. Suggests sub-topic and difficulty. Items of `reference_only` files are marked `reference` (corpus only).
 3. **Review screen and publishing**: source page beside the parsed question, edit, confirm sub-topic and difficulty, approve (one transaction: question + options + `audit_log`), reject. `reference_only` items cannot be approved.
 4. **Similarity and harder answer-key layouts** (no Mathpix), **before launch**. Embeddings: an open model inside the worker (data stays in India). Every new question compared by meaning against the bank and the reference-only corpus; `similarity_flags` above the threshold (set on real data) block publishing until resolved.
-5. **Question generator** (new module): questions per sub-topic, difficulty and format from chapter content into the review queue (`source_type = 'ai_generated'`); independent second AI solve must agree (else flagged); the subject expert confirms every answer; similarity check on each.
+5. **Question generator** (new module, **after launch**, following the CBT engine): questions per sub-topic, difficulty and format from chapter content into the review queue (`source_type = 'ai_generated'`); independent second AI solve must agree (else flagged); the subject expert confirms every answer; similarity check on each.
 
 Decisions: staff on dev sign in with test numbers +91 99999 00002–00005 (made staff by SQL); the console's auth is built so a stronger method can be added for production staff (see launch blockers).
 
-### Build order (revised 26 Sep after the subject-teacher advice; weeks in `ROADMAP.md`)
+### Build order (revised 26 Sep; weeks in `ROADMAP.md`)
 
 1. Pipeline slice 1: secret scanning, staff console and uploads with rights status (week 2).
-2. Sub-topics and difficulty: draft tree + migration (week 3; expert review in parallel).
+   - In parallel: draft the NEET sub-topic tree, one subject at a time, Biology first (separate docs/seed PR) for the subject expert.
+2. Sub-topics and difficulty migration (week 3).
 3. Pipeline slice 2: worker (weeks 3–4).
 4. Pipeline slice 3: review and publishing (week 5).
 5. Pipeline slice 4: similarity checks, before launch (weeks 6–7).
-6. Question generator (weeks 7–8).
-7. CBT exam engine (weeks 9–12).
-8. Results and error notebook.
-9. Practice and search.
-10. Public SEO pages.
-11. Live mocks (and the pilot).
-12. Launch: late January 2027 (about 4 weeks later than planned). Moving the generator after the CBT engine would keep launch near early January.
+6. CBT exam engine (weeks 7–10).
+7. Results and error notebook.
+8. Practice and search.
+9. Public SEO pages.
+10. Live mocks (and the pilot).
+11. Launch: early to mid January 2027.
+12. Question generator, after launch (decided 26 Sep, so launch stays near early January).
 
 ## 5. Carry-over notes
 
