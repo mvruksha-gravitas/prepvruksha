@@ -1,0 +1,115 @@
+import 'package:core/core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:ui_kit/ui_kit.dart';
+
+import '../../l10n/generated/app_localizations.dart';
+import '../shared/shared.dart';
+import 'auth_failure_text.dart';
+import 'auth_providers.dart';
+
+/// Lists the sign-in methods; today only phone OTP.
+class SignInScreen extends ConsumerWidget {
+  const SignInScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final methods = ref.watch(signInMethodsProvider);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.appTitle)),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(24),
+            children: [
+              Text(
+                l10n.signInTitle,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 24),
+              for (final method in methods)
+                switch (method) {
+                  SignInMethod.phone => const _PhoneForm(),
+                },
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhoneForm extends ConsumerStatefulWidget {
+  const _PhoneForm();
+
+  @override
+  ConsumerState<_PhoneForm> createState() => _PhoneFormState();
+}
+
+class _PhoneFormState extends ConsumerState<_PhoneForm> {
+  final _controller = TextEditingController();
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
+    final phone = PhoneNumber.tryParse(_controller.text);
+    if (phone == null) {
+      setState(() => _error = l10n.phoneInvalid);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authRepositoryProvider).sendOtp(phone);
+      if (mounted) await context.push(Routes.otp, extra: phone);
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.localized(l10n));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l10n.signInMethodPhone),
+        const SizedBox(height: 12),
+        TextField(
+          key: const Key('phone-field'),
+          controller: _controller,
+          autofocus: true,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d ]')),
+            LengthLimitingTextInputFormatter(11),
+          ],
+          decoration: InputDecoration(
+            labelText: l10n.phoneLabel,
+            prefixText: '+91 ',
+            errorText: _error,
+          ),
+          onSubmitted: (_) => _submit(),
+        ),
+        const SizedBox(height: 16),
+        BusyButton(label: l10n.sendCode, busy: _busy, onPressed: _submit),
+      ],
+    );
+  }
+}

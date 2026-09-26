@@ -78,10 +78,13 @@ jobs:
       - name: Get dependencies (workspace)
         run: flutter pub get
       - name: Localisation files are up to date
-        working-directory: apps/app
         run: |
-          flutter gen-l10n
-          git diff --exit-code -- lib/l10n/generated
+          for app in apps/app apps/console; do
+            (cd "$app" && flutter gen-l10n)
+            git diff --exit-code -- "$app/lib/l10n/generated"
+            # A new ARB key must be committed with its generated file.
+            test -z "$(git status --porcelain -- "$app/lib/l10n/generated")"
+          done
       - name: Format
         run: dart format --output=none --set-exit-if-changed apps packages tool
       - name: Analyze
