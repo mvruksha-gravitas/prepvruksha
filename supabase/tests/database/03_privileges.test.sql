@@ -12,6 +12,8 @@ create temporary table expected_privs (tbl text, role text, privs text[]) on com
 insert into expected_privs values
   ('exams',            'anon',          '{SELECT}'),
   ('exams',            'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
+  ('exam_cycles',      'anon',          '{SELECT}'),
+  ('exam_cycles',      'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
   ('subjects',         'anon',          '{SELECT}'),
   ('subjects',         'authenticated', '{SELECT,INSERT,UPDATE,DELETE}'),
   ('chapters',         'anon',          '{SELECT}'),
@@ -42,7 +44,7 @@ insert into expected_privs values
   ('audit_log',        'service_role',  '{SELECT,INSERT}');
 insert into expected_privs
 select t, 'service_role', '{SELECT,INSERT,UPDATE,DELETE}'
-from unnest(array['exams', 'subjects', 'chapters', 'topics', 'questions', 'question_topics',
+from unnest(array['exams', 'exam_cycles', 'subjects', 'chapters', 'topics', 'questions', 'question_topics',
                   'question_options', 'profiles', 'consents', 'staff_roles', 'policy_versions',
                   'parental_consent_requests']) as t;
 
