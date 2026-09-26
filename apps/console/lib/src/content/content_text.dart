@@ -33,7 +33,10 @@ String examLabel(String code, AppLocalizations l10n) => switch (code) {
   _ => code,
 };
 
-String megabytes(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
+/// "14 KB" below 1 MB, else "1.1 MB".
+String fileSizeText(int bytes, AppLocalizations l10n) => bytes < 1024 * 1024
+    ? l10n.fileSizeKb((bytes / 1024).ceil().toString())
+    : l10n.fileSize((bytes / (1024 * 1024)).toStringAsFixed(1));
 
 extension ApiFailureText on ApiFailure {
   String localized(AppLocalizations l10n) => switch (code) {

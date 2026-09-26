@@ -201,6 +201,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String fileSizeKb(String size) {
+    return '$size KB';
+  }
+
+  @override
   String get rightsStatusLabel => 'Rights status';
 
   @override

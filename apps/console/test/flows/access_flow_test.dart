@@ -78,6 +78,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('NEET 2023.pdf'), findsOneWidget);
+    expect(find.textContaining('2.0 MB'), findsOneWidget);
     expect(
       find.text('Official previous-year paper · NEET-UG 2023'),
       findsOneWidget,
@@ -102,5 +103,47 @@ void main() {
 
     expect(content.lastFilters?.rights, RightsStatus.referenceOnly);
     expect(find.text('No files match these filters.'), findsOneWidget);
+  });
+
+  testWidgets('the next person to sign in never sees the previous list', (
+    tester,
+  ) async {
+    final auth = FakeAuthRepository();
+    final staff = FakeStaffRepository({}, auth: auth)
+      ..rolesByPhone['919999900002'] = {StaffRole.contentAdmin}
+      ..rolesByPhone['919999900003'] = {StaffRole.reviewer};
+    final content = FakeContentRepository(staff: staff)
+      ..files.addAll([
+        sourceFile(name: 'Own.pdf'),
+        sourceFile(
+          id: 'f2',
+          name: 'Guide.docx',
+          rights: RightsStatus.referenceOnly,
+        ),
+      ]);
+    await tester.pumpWidget(
+      console(auth: auth, staff: staff, content: content),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> signIn(String number) async {
+      await tester.enterText(find.byKey(const Key('phone-field')), number);
+      await tester.tap(find.text('Send code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('otp-field')), '123456');
+      await tester.pumpAndSettle();
+    }
+
+    await signIn('9999900002');
+    expect(find.text('Roles: Content admin'), findsOneWidget);
+    expect(find.textContaining('Guide.docx'), findsOneWidget);
+
+    await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    await signIn('9999900003');
+
+    expect(find.text('Roles: Reviewer'), findsOneWidget);
+    expect(find.textContaining('Own.pdf'), findsOneWidget);
+    expect(find.textContaining('Guide.docx'), findsNothing);
   });
 }

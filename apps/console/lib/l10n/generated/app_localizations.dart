@@ -442,6 +442,12 @@ abstract class AppLocalizations {
   /// **'{size} MB'**
   String fileSize(String size);
 
+  /// No description provided for @fileSizeKb.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} KB'**
+  String fileSizeKb(String size);
+
   /// No description provided for @rightsStatusLabel.
   ///
   /// In en, this message translates to:

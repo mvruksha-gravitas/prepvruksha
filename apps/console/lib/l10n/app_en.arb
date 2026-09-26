@@ -62,6 +62,8 @@
   "fileTooLarge": "The file is larger than 100 MB.",
   "fileTypeNotAccepted": "Only PDF (.pdf) and Word (.docx) files are accepted.",
   "fileSize": "{size} MB",
+  "fileSizeKb": "{size} KB",
+  "@fileSizeKb": {"placeholders": {"size": {"type": "String"}}},
   "@fileSize": {"placeholders": {"size": {"type": "String"}}},
   "rightsStatusLabel": "Rights status",
   "rightsStatusRequired": "Choose the rights status.",

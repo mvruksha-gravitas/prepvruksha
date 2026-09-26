@@ -171,7 +171,7 @@ class _UploadDialogState extends ConsumerState<UploadDialog> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(file.name),
                   subtitle: Text(
-                    _fileError ?? l10n.fileSize(megabytes(file.size ?? 0)),
+                    _fileError ?? fileSizeText(file.size ?? 0, l10n),
                     style: _fileError == null
                         ? null
                         : TextStyle(color: Theme.of(context).colorScheme.error),

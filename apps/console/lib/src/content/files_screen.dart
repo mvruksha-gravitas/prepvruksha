@@ -78,6 +78,9 @@ class FilesScreen extends ConsumerWidget {
                 if (canUpload)
                   FilledButton.icon(
                     key: const Key('upload-button'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                    ),
                     onPressed: () => _upload(context, ref),
                     icon: const Icon(Icons.upload_file),
                     label: Text(l10n.uploadFile),
@@ -148,7 +151,7 @@ class _FilesTable extends StatelessWidget {
                       TextSpan(
                         text:
                             '  ${file.fileType.wire.toUpperCase()} · '
-                            '${l10n.fileSize(megabytes(file.sizeBytes))}',
+                            '${fileSizeText(file.sizeBytes, l10n)}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

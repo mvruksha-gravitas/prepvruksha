@@ -32,7 +32,8 @@ class FakeAuthRepository implements AuthRepository {
     if (code != '123456') {
       throw const AuthFailure(AuthFailureCode.invalidCode);
     }
-    _set(AuthUser(id: 'u1', phone: phone.e164.substring(1)));
+    final digits = phone.e164.substring(1);
+    _set(AuthUser(id: 'user-$digits', phone: digits));
   }
 
   @override
@@ -45,9 +46,13 @@ class FakeAuthRepository implements AuthRepository {
 }
 
 class FakeStaffRepository implements StaffRepository {
-  FakeStaffRepository(this.roles);
+  FakeStaffRepository(this.roles, {this.auth});
 
   Set<StaffRole> roles;
+
+  /// When set, roles come from [rolesByPhone] for the signed-in user.
+  final FakeAuthRepository? auth;
+  final rolesByPhone = <String, Set<StaffRole>>{};
   ApiFailure? nextFailure;
 
   @override
@@ -56,7 +61,11 @@ class FakeStaffRepository implements StaffRepository {
       nextFailure = null;
       throw failure;
     }
-    return StaffMember(userId: 'u1', roles: roles);
+    final user = auth?.currentUser;
+    return StaffMember(
+      userId: user?.id ?? 'u1',
+      roles: rolesByPhone[user?.phone] ?? roles,
+    );
   }
 }
 
@@ -82,6 +91,10 @@ SourceFile sourceFile({
 );
 
 class FakeContentRepository implements ContentRepository {
+  FakeContentRepository({this.staff});
+
+  /// When set, reviewers get no reference-only files (as from the API).
+  final FakeStaffRepository? staff;
   final files = <SourceFile>[];
   final created = <NewSourceFile>[];
   final uploads = <(String, int, SourceFileType)>[];
@@ -96,10 +109,13 @@ class FakeContentRepository implements ContentRepository {
     RightsStatus? rightsStatus,
   }) async {
     lastFilters = (status: status, rights: rightsStatus);
+    final me = await staff?.fetchMe();
+    final seesReference = me == null || me.has(StaffRole.contentAdmin);
     return [
       for (final f in files)
         if ((status == null || f.status == status) &&
-            (rightsStatus == null || f.rightsStatus == rightsStatus))
+            (rightsStatus == null || f.rightsStatus == rightsStatus) &&
+            (seesReference || f.rightsStatus != RightsStatus.referenceOnly))
           f,
     ];
   }
