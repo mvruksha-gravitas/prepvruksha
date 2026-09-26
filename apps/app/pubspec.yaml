@@ -1,0 +1,29 @@
+name: prepvruksha
+description: PrepVruksha app for students, teachers, institutes and parents.
+publish_to: none
+version: 0.1.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  core:
+  ui_kit:
+  supabase_flutter: ^2.17.2
+  flutter_riverpod: ^3.4.3
+  go_router: ^18.0.1
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.5
+
+flutter:
+  uses-material-design: true
+  generate: true

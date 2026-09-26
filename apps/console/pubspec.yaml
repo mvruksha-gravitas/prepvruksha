@@ -1,0 +1,21 @@
+name: prepvruksha_console
+description: PrepVruksha admin and content review console (Flutter web).
+publish_to: none
+version: 0.1.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core:
+  ui_kit:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
