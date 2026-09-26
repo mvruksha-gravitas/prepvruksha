@@ -185,12 +185,21 @@ select results_eq(
   'the change is audited with old, new and reason');
 
 -- A published question from the file locks it (only reference_only allowed)
-insert into public.questions (exam_id, subject_id, format, stem, source_type, pyq_year, source_file_id,
-                              status, slug, published_at)
-select e.id, s.id, 'single_mcq', 'Q?', 'pyq', 2022, f.id, 'published', 'q', now()
+insert into public.topics (chapter_id, slug, name_en)
+select c.id, 'fixture-topic', 'Fixture topic'
+from public.chapters c join public.subjects s on s.id = c.subject_id
+where s.code = 'PHY' and c.slug = 'laws-of-motion';
+insert into public.sub_topics (topic_id, chapter_id, slug, name_en, expert_reviewed)
+select id, chapter_id, 'fixture-sub-topic', 'Fixture sub-topic', true
+from public.topics where slug = 'fixture-topic';
+insert into public.questions (exam_id, subject_id, chapter_id, format, stem, source_type, pyq_year,
+                              source_file_id, status, slug, published_at,
+                              sub_topic_id, difficulty, difficulty_source)
+select e.id, s.id, st.chapter_id, 'single_mcq', 'Q?', 'pyq', 2022, f.id, 'published', 'q', now(),
+       st.id, 'easy', 'reviewer'
 from public.exams e join public.subjects s on s.exam_id = e.id and s.code = 'PHY',
-     public.source_files f
-where e.code = 'NEET_UG' and f.sha256 = repeat('a', 64);
+     public.source_files f, public.sub_topics st
+where e.code = 'NEET_UG' and f.sha256 = repeat('a', 64) and st.slug = 'fixture-sub-topic';
 select throws_ok(
   format($$ select public.set_source_file_rights('cccccccc-6666-6666-6666-666666666666', %L,
            'owned_licensed', 'x', 'y') $$,

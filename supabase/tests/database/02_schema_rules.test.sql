@@ -81,6 +81,16 @@ join public.subjects phy on phy.exam_id = e.id and phy.code = 'PHY'
 join public.subjects che on che.exam_id = e.id and che.code = 'CHE'
 where e.code = 'NEET_UG';
 
+-- An approved sub-topic in phy_chapter_id, so the publish checks below fail
+-- only for the rule each test is about.
+insert into public.topics (chapter_id, slug, name_en)
+select phy_chapter_id, 'fixture-topic', 'Fixture topic' from ctx;
+insert into public.sub_topics (topic_id, chapter_id, slug, name_en, expert_reviewed)
+select id, chapter_id, 'fixture-sub-topic', 'Fixture sub-topic', true
+from public.topics where slug = 'fixture-topic';
+alter table ctx add column sub_topic_id uuid;
+update ctx set sub_topic_id = (select id from public.sub_topics where slug = 'fixture-sub-topic');
+
 select lives_ok(
   $$ insert into public.questions (exam_id, subject_id, format, stem, source_type)
      select exam_id, phy_id, 'single_mcq', 'Short id check', 'original' from ctx $$,
@@ -107,8 +117,10 @@ select throws_ok(
   $$ do $x$
      declare qid uuid;
      begin
-       insert into public.questions (exam_id, subject_id, format, stem, source_type, status, slug, published_at)
-       select exam_id, phy_id, 'single_mcq', 'Two correct', 'original', 'published', 'two-correct', now()
+       insert into public.questions (exam_id, subject_id, chapter_id, sub_topic_id, difficulty,
+                                    difficulty_source, format, stem, source_type, status, slug, published_at)
+       select exam_id, phy_id, phy_chapter_id, sub_topic_id, 'moderate', 'reviewer',
+              'single_mcq', 'Two correct', 'original', 'published', 'two-correct', now()
        from ctx returning id into qid;
        insert into public.question_options (question_id, label, content, is_correct)
        select qid, l, 'Option ' || l, l in ('A', 'B') from unnest(array['A', 'B', 'C', 'D']) as l;
@@ -120,8 +132,10 @@ select throws_ok(
   $$ do $x$
      declare qid uuid;
      begin
-       insert into public.questions (exam_id, subject_id, format, stem, source_type, status, slug, published_at)
-       select exam_id, phy_id, 'single_mcq', 'Three options', 'original', 'published', 'three-options', now()
+       insert into public.questions (exam_id, subject_id, chapter_id, sub_topic_id, difficulty,
+                                    difficulty_source, format, stem, source_type, status, slug, published_at)
+       select exam_id, phy_id, phy_chapter_id, sub_topic_id, 'moderate', 'reviewer',
+              'single_mcq', 'Three options', 'original', 'published', 'three-options', now()
        from ctx returning id into qid;
        insert into public.question_options (question_id, label, content, is_correct)
        select qid, l, 'Option ' || l, l = 'A' from unnest(array['A', 'B', 'C']) as l;
@@ -133,8 +147,10 @@ select lives_ok(
   $$ do $x$
      declare qid uuid;
      begin
-       insert into public.questions (exam_id, subject_id, format, stem, source_type, status, slug, published_at)
-       select exam_id, phy_id, 'single_mcq', 'Valid published', 'original', 'published', 'valid-published', now()
+       insert into public.questions (exam_id, subject_id, chapter_id, sub_topic_id, difficulty,
+                                    difficulty_source, format, stem, source_type, status, slug, published_at)
+       select exam_id, phy_id, phy_chapter_id, sub_topic_id, 'moderate', 'reviewer',
+              'single_mcq', 'Valid published', 'original', 'published', 'valid-published', now()
        from ctx returning id into qid;
        insert into public.question_options (question_id, label, content, is_correct)
        select qid, l, 'Option ' || l, l = 'C' from unnest(array['A', 'B', 'C', 'D']) as l;

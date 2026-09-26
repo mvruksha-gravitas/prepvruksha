@@ -122,7 +122,11 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 - `attempt_answers (attempt_id)`, `attempt_answers (question_id)`
 - `import_jobs (status, created_at)`
 
-## 10. Planned migration: sub-topics and difficulty (before pipeline slice 2)
+## 10. Sub-topics and difficulty (migration `20261001000100`, 26 Sep 2026)
+
+Decided 26 Sep: tagging against the draft tree is allowed, but **a question can be published only when its sub-topic has `expert_reviewed = true`** (commit-time trigger `questions_published_sub_topic`), plus a sub-topic and a reviewer-set difficulty (check). Removed chapters, topics and sub-topics stay in the tree with `is_removed = true`, so older PYQs still get a sub-topic under the strict rule; **practice and mocks exclude questions on removed sub-topics by default** (to enforce when those slices are built). `sub_topics.chapter_id` is stored and kept equal to the topic's chapter by a composite FK; `questions (sub_topic_id, chapter_id)` references it, so a question's sub-topic is always in its own chapter. `difficulty_source` is null exactly when `difficulty` is.
+
+Original plan:
 
 One migration after slice 1, before the worker writes any `import_items`, so nothing has to be re-tagged (0 questions today):
 
