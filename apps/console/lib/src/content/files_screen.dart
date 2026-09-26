@@ -88,7 +88,11 @@ class FilesScreen extends ConsumerWidget {
             Expanded(
               child: switch (files) {
                 AsyncData(:final value) when value.isEmpty => Center(
-                  child: Text(l10n.filesEmpty),
+                  child: Text(
+                    filters.status == null && filters.rights == null
+                        ? l10n.filesEmpty
+                        : l10n.filesNoneMatch,
+                  ),
                 ),
                 AsyncData(:final value) => SingleChildScrollView(
                   child: _FilesTable(files: value),

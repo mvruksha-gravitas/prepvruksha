@@ -33,6 +33,7 @@
   "uploadFile": "Upload file",
   "refresh": "Refresh",
   "filesEmpty": "No files yet.",
+  "filesNoneMatch": "No files match these filters.",
   "filesLoadFailed": "We couldn't load the files.",
   "filterAllStatuses": "All statuses",
   "filterAllRights": "All rights",

@@ -84,4 +84,23 @@ void main() {
     );
     expect(find.byKey(const Key('upload-button')), findsNothing);
   });
+
+  testWidgets('an empty filtered list says nothing matches', (tester) async {
+    final content = FakeContentRepository()..files.add(sourceFile());
+    await tester.pumpWidget(
+      console(
+        auth: FakeAuthRepository(user: _staffUser),
+        content: content,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('All rights'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reference only').last);
+    await tester.pumpAndSettle();
+
+    expect(content.lastFilters?.rights, RightsStatus.referenceOnly);
+    expect(find.text('No files match these filters.'), findsOneWidget);
+  });
 }

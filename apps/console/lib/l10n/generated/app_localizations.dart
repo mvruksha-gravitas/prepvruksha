@@ -274,6 +274,12 @@ abstract class AppLocalizations {
   /// **'No files yet.'**
   String get filesEmpty;
 
+  /// No description provided for @filesNoneMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No files match these filters.'**
+  String get filesNoneMatch;
+
   /// No description provided for @filesLoadFailed.
   ///
   /// In en, this message translates to:

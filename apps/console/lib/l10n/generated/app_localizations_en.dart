@@ -109,6 +109,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filesEmpty => 'No files yet.';
 
   @override
+  String get filesNoneMatch => 'No files match these filters.';
+
+  @override
   String get filesLoadFailed => 'We couldn\'t load the files.';
 
   @override
