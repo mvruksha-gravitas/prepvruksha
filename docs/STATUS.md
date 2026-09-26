@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: dev deploy slice (branch `feat/dev-deploy`)
+Last updated: dev deploy slice, merged (PR #6) and verified on dev (26 Sep)
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -57,7 +57,7 @@ Feature-first layout per "Modularity" in `CLAUDE.md`. No behaviour change.
 - Tests: API 39, app 30 (unchanged counts).
 - **Consent config** (follow-up PR): parent-code settings (`OTP_HMAC_KEY`, `PARENT_OTP_SENDER`, `PARENT_OTP_TEST_CODES`) and the prod safety check moved to `consent/config.py`; `main.py` still refuses to start prod with the log sender or test parent numbers (tested by starting the app in a subprocess). API tests: 46.
 
-### Dev deploy — branch `feat/dev-deploy`
+### Dev deploy — PR #6, merged to `main`, verified 26 Sep
 
 Runbook: `infra/README.md`.
 
@@ -72,6 +72,10 @@ Runbook: `infra/README.md`.
 - **`.github/workflows/deploy-dev.yml`:** after CI passes on `main`, deploys the API if `services/api/**` or `infra/cloudrun/**` changed, and the web app if `apps/app/**`, `packages/core|ui_kit/**`, `pubspec.*` or `firebase.json` changed. Also runs by hand.
 - **Web:** `firebase.json` (SPA rewrite, `no-cache` for html/js/json/wasm, basic security headers); the build config comes from GitHub repository variables.
 - **Settings fix:** `PARENT_OTP_TEST_CODES` from the environment now replaces the `.env` value instead of being merged with it (tested). API tests: 49.
+- **Verified on dev (26 Sep):**
+  - First Deploy dev run passed (API + web, 3.5 min).
+  - `/health` returns `env: dev`, and requests without a token get 401. CORS allows `prepvruksha-dev.web.app`, and direct links work.
+  - **Signup clicked through in Chrome on `https://prepvruksha-dev.web.app`** with +91 99999 00001: profile (minor), terms, parent +91 99999 00006 / `123456`, then home. The database has one test profile with two consents.
 - **Rule 13 in `CLAUDE.md`:** no real student or personal data in `prepvruksha-dev`.
 
 ## 2. Environments
@@ -81,10 +85,10 @@ Runbook: `infra/README.md`.
 | Supabase | `supabase start` (Docker Desktop). Test numbers in `config.toml` | Ref `hzpuxfgfheizghpipmew`, Mumbai. Linked from this repo |
 | Migrations | All 10 (via `supabase db reset`) | All 10 applied, up to `20260928000400` (checked 26 Sep with `supabase migration list --linked`) |
 | Seed | Applied on reset | Syllabus (100 chapters) and the two `2026-10-draft` policy versions |
-| Users / staff | Test numbers only | 0 users, 0 staff roles, 0 questions (as of 27 Sep) |
-| Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | **Test numbers not configured yet** (see to-do). The test numbers are public: **no real student or personal data on dev** |
-| `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Cloud Run `prepvruksha-api`: `https://prepvruksha-api-765197352192.asia-south1.run.app` (sample image until the first deploy from `main`) |
-| GCP / Firebase | — | Project `prepvruksha-dev`, `asia-south1`. Web app: `https://prepvruksha-dev.web.app` (from the first deploy). See `infra/README.md` |
+| Users / staff | Test numbers only | 1 test user (+91 99999 00001, "Test Student", minor, signup complete), 0 staff roles, 0 questions (26 Sep) |
+| Phone auth | Works with test numbers (placeholder Twilio in `config.toml`) | Test numbers +91 99999 00001–00005 / `123456` (valid until 31 Dec 2027); placeholder Twilio values; OTP expiry 300 s. The test numbers are public: **no real student or personal data on dev** |
+| `services/api` | `uv run uvicorn prepvruksha_api.main:app --reload` with `services/api/.env` (see `.env.example`: secret key, `OTP_HMAC_KEY`, `PARENT_OTP_TEST_CODES`) | Cloud Run `prepvruksha-api`: `https://prepvruksha-api-765197352192.asia-south1.run.app` (deployed from `main` by Deploy dev) |
+| GCP / Firebase | — | Project `prepvruksha-dev`, `asia-south1`. Web app: `https://prepvruksha-dev.web.app`. See `infra/README.md` |
 
 Privileges are identical locally and on dev, so local tests reflect dev.
 `supabase test db --linked` does not work (the CLI's temporary role cannot see pgTAP in `extensions`); verify dev with the Data API or `supabase db query --linked`.
@@ -96,10 +100,10 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **Click through the signup flow in Chrome** against local Supabase + local API: add `"API_URL": "http://127.0.0.1:8000"` to `config/local.json` (now required, or the app shows the config error screen), start the API, sign in with +91 99999 00001, complete the profile as a minor, parent number +91 99999 00006, code `123456`.
 - [ ] **Branch protection:** make "CI result" the only required status check on `main` (after this slice merges).
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
-- [ ] **Before the first dev deploy (you):** create the Supabase secret key `apidev`, add both secret values (commands in `infra/README.md`), and set the GitHub variable `DEV_SUPABASE_PUBLISHABLE_KEY`. Then merge this slice; check the Deploy dev run, `/health`, and sign in on `https://prepvruksha-dev.web.app`.
 - [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
-- [ ] **Test phone numbers on `prepvruksha-dev`:** add +91 99999 00001–00005, code `123456`, under Auth > Providers > Phone, with a placeholder SMS provider (see `supabase/README.md`). Then log in from the app with `config/dev.json`.
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
+- [ ] **Exam year list:** the profile step (app and `complete_profile`) offers the current year through +3, so 2026 is still offered after NEET 2026 is over. Decide the cutoff (e.g. from June, start at next year) and change both together.
+- [ ] **GitHub Actions on Node 20** (deprecated): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
 - [ ] **Account deletion and data erasure requests** (DPDP), a later slice: delete/anonymise user data on request, keep what the law requires (consent records), and decide how long withdrawn accounts are kept.
 - [ ] **Content review:**
