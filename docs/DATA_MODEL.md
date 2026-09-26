@@ -10,7 +10,7 @@ Columns listed are the important ones, not exhaustive. Migrations are the source
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `profiles` | `id` (= `auth.users.id`), `full_name`, `phone`, `preferred_language` (`en`/`kn`), `date_of_birth`, `target_exam_year`, `category`, `home_state` | One per user, created by a trigger on `auth.users`. Minor status is derived with `private.is_minor(user_id)` (null when the date of birth is unknown), never stored. `phone` and `date_of_birth` are not client-editable. Category/state feed the predictor later. |
+| `profiles` | `id` (= `auth.users.id`), `full_name`, `phone`, `preferred_language` (`en`/`kn`), `date_of_birth`, `target_exam_year`, `category`, `home_state` | One per user, created by a trigger on `auth.users`. `phone` is digits without `+` (as Supabase Auth stores it, e.g. `919999900001`). `category` holds central (MCC) categories (`general`, `ews`, `obc_ncl`, `sc`, `st`); `state_category` (KEA) and `pwd` are added before the college predictor. Minor status is derived with `private.is_minor(user_id)` (null when the date of birth is unknown), never stored. `phone` and `date_of_birth` are not client-editable. Category/state feed the predictor later. |
 | `consents` | `user_id`, `type` (`parental`, `terms`, `marketing`), `policy_version`, `granted_by_name`, `granted_by_phone`, `granted_at`, `method` (`parent_otp`, `in_app`, `offline_form`), `withdrawn_at` | DPDP parental consent for under-18s. Parental rows must name the parent and their phone. Withdrawal is recorded, not deleted. |
 | `institutions` | `name`, `type` (`pu_college`, `school`, `tutorial`), `city`, `erp_source` (`vidhyavruksha`/null), `erp_external_id`, `branding` (jsonb) | |
 | `memberships` | `user_id`, `institution_id`, `role` (`student`, `teacher`, `admin`), `status` | A student can belong to several institutions over time. |
@@ -24,7 +24,7 @@ Columns listed are the important ones, not exhaustive. Migrations are the source
 | Table | Key columns | Notes |
 |---|---|---|
 | `exams` | `code` (`NEET_UG`, later `KCET`, `PU_BOARD`), `slug`, `name_en`, `name_kn`, `name_kn_reviewed` | Supports adding exams later. |
-| `subjects` | `exam_id`, `code`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `sort_order` | Physics, Chemistry, Botany, Zoology. |
+| `subjects` | `exam_id`, `code`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `sort_order` | Physics, Chemistry, Botany, Zoology. NCERT Biology chapters are split into Botany and Zoology following common NEET practice. |
 | `chapters` | `subject_id`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `class_level` (11/12, null for units like experimental skills), `ncert_ref`, `neet_weightage`, `is_removed`, `sort_order` | `is_removed` = no longer in the exam syllabus; kept for tagging older PYQs. |
 | `topics` | `chapter_id`, `slug`, `name_en`, `name_kn`, `name_kn_reviewed`, `sort_order` | |
 
@@ -36,7 +36,7 @@ Slugs feed the SEO URLs and never change once used. `name_kn_reviewed` is false 
 | Table | Key columns | Notes |
 |---|---|---|
 | `questions` | `exam_id`, `subject_id`, `chapter_id`, `format` (`single_mcq`, `assertion_reason`, `match_following`, `multi_statement`, `numerical`), `stem` (rich text / HTML with LaTeX), `stem_plain`, `language`, `translation_of` (fk → questions), `status` (`draft`, `review`, `published`, `retired`), `source_type` (`pyq`, `original`, `imported`), `pyq_year`, `source_file_id`, `source_page`, `slug`, `short_id`, `difficulty_b` (IRT, nullable), `discrimination_a`, `canonical_id` (for duplicates), `exam_reserved`, `embedding` (vector, added in the import slice), `published_at`, `published_by` | `stem_plain` for search and SEO. `exam_reserved` holds a question back for live mocks: never public (app or SEO), even when published. The public URL is `{slug}-{short_id}`, so `slug` alone is not unique. The subject must belong to the exam and the chapter to the subject (composite foreign keys). |
-| `question_options` | `question_id`, `label` (A–D), `content`, `content_plain`, `is_correct`, `trap_type` (P1) | Correctness lives only here, and `is_correct` is not readable by app clients (column privilege). A published option question must have A–D with exactly one correct (checked at commit). |
+| `question_options` | `question_id`, `label` (A–D), `content`, `content_plain`, `is_correct`, `trap_type` (P1) | Correctness lives only here, and `is_correct` is not readable by app clients (column privilege). A published option question must have A–D with exactly one correct (checked at commit). Client writes must not ask for the row back (PostgREST `Prefer: return=minimal`); staff see the answer key through a server-side function. |
 | `question_answers_numeric` (P2) | `question_id`, `value`, `tolerance` | Only for numerical questions. |
 | `question_topics` | `question_id`, `topic_id` | Many-to-many. |
 | `question_ncert_links` (P1) | `question_id`, `ncert_passage_id`, `confidence`, `verified` | |
