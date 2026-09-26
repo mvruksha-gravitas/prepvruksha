@@ -1,6 +1,6 @@
 # Status — PrepVruksha
 
-Last updated: exam cycles slice (branch `feat/exam-cycles`)
+Last updated: exam cycles (PR #8, on dev) + tentative NEET 2028/2029 sittings
 
 Read this at the start of every conversation. Update it at the end of every slice.
 Decisions and their reasons go in the decisions log in `docs/ARCHITECTURE.md`.
@@ -78,7 +78,7 @@ Runbook: `infra/README.md`.
   - **Signup clicked through in Chrome on `https://prepvruksha-dev.web.app`** with +91 99999 00001: profile (minor), terms, parent +91 99999 00006 / `123456`, then home. The database has one test profile with two consents.
 - **Rule 13 in `CLAUDE.md`:** no real student or personal data in `prepvruksha-dev`.
 
-### Exam cycles — branch `feat/exam-cycles`
+### Exam cycles — PR #8, merged to `main`, on dev
 
 The target exam years at signup come from data, not from a hard-coded month.
 
@@ -86,9 +86,9 @@ The target exam years at signup come from data, not from a hard-coded month.
   - `exam_cycles` (exam, year, date, `date_confirmed`): everyone reads, content admins write.
   - `public.target_exam_years(exam_code, as_of)` returns the first sitting whose date is today or later (India time) plus the two years after it, or empty when none is recorded.
   - `complete_profile` and a new `profiles` trigger (`private.guard_target_exam_year`) both use the rule, so direct client updates of `target_exam_year` are checked too. Only changes are checked, so a year chosen earlier stays valid after its exam.
-  - Seed: NEET-UG 2027 on **2 May 2027** (first Sunday of May, NEET's usual pattern), `date_confirmed = false`.
+  - Seed: NEET-UG 2027, 2028 and 2029, tentative, on the first Sunday of May (2 May 2027, 7 May 2028, 6 May 2029), `date_confirmed = false`. On dev since 26 Sep (2027 only until the 2028/2029 seed is pushed).
 - **App:** the profile step lists the years from the rule. It shows a retry when they fail to load, and a "signup paused" message when no upcoming date is recorded.
-- **Tests:** pgTAP 265 (new `05_exam_cycles.test.sql`; `04_signup` uses its own cycles, independent of the date), app 33.
+- **Tests:** pgTAP 266 (new `05_exam_cycles.test.sql`; `04_signup` uses its own cycles, independent of the date), app 33.
 
 ## 2. Environments
 
@@ -114,8 +114,8 @@ Test parent numbers (fixed code `123456`, nothing sent): +91 99999 00006 and 000
 - [ ] **import-linter for `services/pipeline` and `services/seo`:** add contracts once they have feature folders (CI skips the step until then).
 - [ ] Set `API_URL` in your local `config/dev.json` to the Cloud Run URL (Android dev builds).
 - [ ] **First super admin** on dev: after the first login, run the SQL in `supabase/README.md`.
-- [ ] **Push the exam-cycles migration to dev before merging `feat/exam-cycles`:** `supabase db push --include-seed`, then check `select public.target_exam_years('NEET_UG')` returns `{2027,2028,2029}`. Otherwise the deployed web app can't load the exam years.
-- [ ] **Keep the next exam date on record:** when NTA announces NEET-UG 2027, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2028 sitting **before 2 May 2027**, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL.
+- [ ] **Push the seed to dev after merging the NEET 2028/2029 rows:** `supabase db push --include-seed` (adds the missing rows only), then check `exam_cycles` has 2027, 2028 and 2029.
+- [ ] **Keep exam dates on record:** NEET-UG 2027, 2028 and 2029 are tentative (first Sunday of May, `date_confirmed = false`). When NTA announces a date, a content admin sets the official `exam_date` and `date_confirmed = true`. Add the 2030 sitting before 6 May 2029, or signup pauses (no years offered). A console screen for exam cycles comes with the review console; until then, use SQL.
 - [ ] **GitHub Actions on Node 20** (deprecated): bump `actions/checkout`, `google-github-actions/auth` and `setup-gcloud` to their Node 24 versions.
 - [ ] **Staff date-of-birth correction** in the console: API endpoint + screen calling `public.correct_date_of_birth` (the function and its audit entry exist; no UI yet). Also offline (paper) parental consent: staff records `method = 'offline_form'` consents collected by pilot colleges.
 - [ ] **Account deletion and data erasure requests** (DPDP), a later slice: delete/anonymise user data on request, keep what the law requires (consent records), and decide how long withdrawn accounts are kept.

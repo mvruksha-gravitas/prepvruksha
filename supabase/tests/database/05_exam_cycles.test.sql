@@ -5,14 +5,19 @@ create extension if not exists pgtap with schema extensions;
 select no_plan();
 
 -- ---------------------------------------------------------------------------
--- Seed: NEET-UG 2027 is set for May 2027, not yet confirmed
+-- Seed: tentative NEET-UG sittings, first Sunday of May, not yet confirmed
 -- ---------------------------------------------------------------------------
 select results_eq(
-  $$ select c.exam_date, c.date_confirmed from public.exam_cycles c
+  $$ select c.exam_year, c.exam_date, c.date_confirmed from public.exam_cycles c
      join public.exams e on e.id = c.exam_id
-     where e.code = 'NEET_UG' and c.exam_year = 2027 $$,
-  $$ values (date '2027-05-02', false) $$,
-  'seed: NEET-UG 2027 on 2 May 2027, unconfirmed');
+     where e.code = 'NEET_UG' and c.exam_year between 2027 and 2029
+     order by c.exam_year $$,
+  $$ values (2027::smallint, date '2027-05-02', false),
+            (2028::smallint, date '2028-05-07', false),
+            (2029::smallint, date '2029-05-06', false) $$,
+  'seed: NEET-UG 2027-2029 on the first Sunday of May, unconfirmed');
+select is(public.target_exam_years('NEET_UG', '2027-05-03'), '{2028,2029,2030}'::smallint[],
+  'seed: after the 2027 exam, signup stays open from 2028');
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (as postgres): fixed cycles, independent of the seed and of today
